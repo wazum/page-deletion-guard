@@ -1,0 +1,11 @@
+# cat=basic; type=boolean; label=Enable guard
+enabled = 1
+
+# cat=basic; type=boolean; label=Allow admin bypass
+allowAdminBypass = 1
+
+# cat=basic; type=string; label=Bypass backend groups (comma-separated IDs)
+bypassBackendGroups =
+
+# cat=advanced; type=boolean; label=Respect workspaces
+respectWorkspaces = 1

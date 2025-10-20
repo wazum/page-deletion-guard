@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+    <file source-language="en" target-language="de" datatype="plaintext" original="EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf" date="2025-01-01T00:00:00Z" product-name="page_deletion_guard">
+        <header/>
+        <body>
+            <trans-unit id="flash.title" resname="flash.title">
+                <source>Page Deletion Blocked</source>
+                <target>Seitenlöschung blockiert</target>
+            </trans-unit>
+            <trans-unit id="flash.message" resname="flash.message">
+                <source>Cannot delete page "%s": %d child page(s) exist. Delete child pages first.</source>
+                <target>Seite "%s" kann nicht gelöscht werden: %d Unterseite(n) vorhanden. Bitte zuerst die Unterseiten löschen.</target>
+            </trans-unit>
+            <trans-unit id="log.denied" resname="log.denied">
+                <source>Page deletion blocked: "%s" (UID %d) has %d child page(s)</source>
+                <target>Seitenlöschung blockiert: "%s" (UID %d) hat %d Unterseite(n)</target>
+            </trans-unit>
+
+            <!-- JavaScript labels -->
+            <trans-unit id="js.standard.title" resname="js.standard.title">
+                <source>Delete this record?</source>
+                <target>Diesen Datensatz löschen?</target>
+            </trans-unit>
+            <trans-unit id="js.standard.message" resname="js.standard.message">
+                <source>Are you sure you want to delete this page?</source>
+                <target>Sind Sie sicher, dass Sie diese Seite löschen möchten?</target>
+            </trans-unit>
+            <trans-unit id="js.error.title" resname="js.error.title">
+                <source>Deletion Not Allowed</source>
+                <target>Löschen nicht erlaubt</target>
+            </trans-unit>
+            <trans-unit id="js.error.prefix" resname="js.error.prefix">
+                <source>Error:</source>
+                <target>Fehler:</target>
+            </trans-unit>
+            <trans-unit id="js.error.not_allowed" resname="js.error.not_allowed">
+                <source>You are not allowed to delete pages with children.</source>
+                <target>Sie dürfen keine Seiten mit Unterseiten löschen.</target>
+            </trans-unit>
+            <trans-unit id="js.error.has_children" resname="js.error.has_children">
+                <source>This page has %d %s and cannot be deleted.</source>
+                <target>Diese Seite hat %d %s und kann nicht gelöscht werden.</target>
+            </trans-unit>
+            <trans-unit id="js.error.instruction" resname="js.error.instruction">
+                <source>Please delete the child pages first or contact your administrator for permissions.</source>
+                <target>Bitte löschen Sie zuerst die Unterseiten oder wenden Sie sich an Ihren Administrator für Berechtigungen.</target>
+            </trans-unit>
+            <trans-unit id="js.warning.prefix" resname="js.warning.prefix">
+                <source>Warning:</source>
+                <target>Warnung:</target>
+            </trans-unit>
+            <trans-unit id="js.warning.title" resname="js.warning.title">
+                <source>Delete page "%s"?</source>
+                <target>Seite "%s" löschen?</target>
+            </trans-unit>
+            <trans-unit id="js.warning.has_children" resname="js.warning.has_children">
+                <source>This page has %d %s.</source>
+                <target>Diese Seite hat %d %s.</target>
+            </trans-unit>
+            <trans-unit id="js.warning.will_delete_all" resname="js.warning.will_delete_all">
+                <source>Deleting this page will also delete all its subpages and their content.</source>
+                <target>Das Löschen dieser Seite wird auch alle Unterseiten und deren Inhalte löschen.</target>
+            </trans-unit>
+            <trans-unit id="js.warning.confirm" resname="js.warning.confirm">
+                <source>Are you sure you want to proceed?</source>
+                <target>Sind Sie sicher, dass Sie fortfahren möchten?</target>
+            </trans-unit>
+            <trans-unit id="js.button.cancel" resname="js.button.cancel">
+                <source>Cancel</source>
+                <target>Abbrechen</target>
+            </trans-unit>
+            <trans-unit id="js.button.delete" resname="js.button.delete">
+                <source>Delete</source>
+                <target>Löschen</target>
+            </trans-unit>
+            <trans-unit id="js.button.ok" resname="js.button.ok">
+                <source>OK</source>
+                <target>OK</target>
+            </trans-unit>
+            <trans-unit id="js.button.delete_with_children" resname="js.button.delete_with_children">
+                <source>Yes, delete page and %d %s</source>
+                <target>Ja, Seite und %d %s löschen</target>
+            </trans-unit>
+            <trans-unit id="js.label.subpage" resname="js.label.subpage">
+                <source>subpage</source>
+                <target>Unterseite</target>
+            </trans-unit>
+            <trans-unit id="js.label.subpages" resname="js.label.subpages">
+                <source>subpages</source>
+                <target>Unterseiten</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

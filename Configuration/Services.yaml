@@ -1,0 +1,20 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  Wazum\PageDeletionGuard\:
+    resource: '../Classes/*'
+
+  Wazum\PageDeletionGuard\Service\BackendUserProviderInterface:
+    alias: Wazum\PageDeletionGuard\Service\BackendUserProvider
+
+  Wazum\PageDeletionGuard\Service\SettingsFactory:
+    public: true
+
+  Wazum\PageDeletionGuard\Hook\PageDeletionGuardHook:
+    public: true
+
+  Wazum\PageDeletionGuard\Controller\ChildPageCheckController:
+    public: true

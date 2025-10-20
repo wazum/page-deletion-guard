@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+    <file source-language="en" datatype="plaintext" original="EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf" date="2025-01-01T00:00:00Z" product-name="page_deletion_guard">
+        <header/>
+        <body>
+            <trans-unit id="flash.title" resname="flash.title">
+                <source>Page Deletion Blocked</source>
+            </trans-unit>
+            <trans-unit id="flash.message" resname="flash.message">
+                <source>Cannot delete page "%s": %d child page(s) exist. Delete child pages first.</source>
+            </trans-unit>
+            <trans-unit id="log.denied" resname="log.denied">
+                <source>Page deletion blocked: "%s" (UID %d) has %d child page(s)</source>
+            </trans-unit>
+
+            <!-- JavaScript labels -->
+            <trans-unit id="js.standard.title" resname="js.standard.title">
+                <source>Delete this record?</source>
+            </trans-unit>
+            <trans-unit id="js.standard.message" resname="js.standard.message">
+                <source>Are you sure you want to delete this page?</source>
+            </trans-unit>
+            <trans-unit id="js.error.title" resname="js.error.title">
+                <source>Deletion Not Allowed</source>
+            </trans-unit>
+            <trans-unit id="js.error.prefix" resname="js.error.prefix">
+                <source>Error:</source>
+            </trans-unit>
+            <trans-unit id="js.error.not_allowed" resname="js.error.not_allowed">
+                <source>You are not allowed to delete pages with children.</source>
+            </trans-unit>
+            <trans-unit id="js.error.has_children" resname="js.error.has_children">
+                <source>This page has %d %s and cannot be deleted.</source>
+            </trans-unit>
+            <trans-unit id="js.error.instruction" resname="js.error.instruction">
+                <source>Please delete the child pages first or contact your administrator for permissions.</source>
+            </trans-unit>
+            <trans-unit id="js.warning.prefix" resname="js.warning.prefix">
+                <source>Warning:</source>
+            </trans-unit>
+            <trans-unit id="js.warning.title" resname="js.warning.title">
+                <source>Delete page "%s"?</source>
+            </trans-unit>
+            <trans-unit id="js.warning.has_children" resname="js.warning.has_children">
+                <source>This page has %d %s.</source>
+            </trans-unit>
+            <trans-unit id="js.warning.will_delete_all" resname="js.warning.will_delete_all">
+                <source>Deleting this page will also delete all its subpages and their content.</source>
+            </trans-unit>
+            <trans-unit id="js.warning.confirm" resname="js.warning.confirm">
+                <source>Are you sure you want to proceed?</source>
+            </trans-unit>
+            <trans-unit id="js.button.cancel" resname="js.button.cancel">
+                <source>Cancel</source>
+            </trans-unit>
+            <trans-unit id="js.button.delete" resname="js.button.delete">
+                <source>Delete</source>
+            </trans-unit>
+            <trans-unit id="js.button.ok" resname="js.button.ok">
+                <source>OK</source>
+            </trans-unit>
+            <trans-unit id="js.button.delete_with_children" resname="js.button.delete_with_children">
+                <source>Yes, delete page and %d %s</source>
+            </trans-unit>
+            <trans-unit id="js.label.subpage" resname="js.label.subpage">
+                <source>subpage</source>
+            </trans-unit>
+            <trans-unit id="js.label.subpages" resname="js.label.subpages">
+                <source>subpages</source>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

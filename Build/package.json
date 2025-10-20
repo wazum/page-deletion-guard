@@ -1,0 +1,20 @@
+{
+  "name": "page-deletion-guard-build",
+  "version": "1.0.0",
+  "description": "Build system for TYPO3 Page Deletion Guard extension",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "preview": "vite preview"
+  },
+  "keywords": ["typo3", "page", "deletion", "guard", "backend"],
+  "author": "Wolfgang Klinger",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.2.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.0"
+  }
+}

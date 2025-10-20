@@ -1,0 +1,37 @@
+# Dependencies
+/vendor/
+Build/node_modules/
+Build/package-lock.json
+
+# Compiled artifacts
+/public/
+Resources/Public/JavaScript/
+Resources/Public/Css/
+
+# Build tools
+/php-cs-fixer.json
+/phpcs.json
+
+# Testing
+/.phpunit.cache
+/.phpunit.result.cache
+
+# Composer
+/composer.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Cache
+var/

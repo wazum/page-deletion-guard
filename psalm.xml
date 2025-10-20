@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<psalm resolveFromConfigFile="true"
+       errorLevel="5"
+       hideExternalErrors="true"
+       phpVersion="8.2">
+    <projectFiles>
+		<directory name="Classes" />
+		<ignoreFiles>
+			<directory name="vendor" />
+		</ignoreFiles>
+    </projectFiles>
+	<issueHandlers>
+		<UnusedClass>
+			<errorLevel type="suppress">
+				<directory name="Classes"/>
+			</errorLevel>
+		</UnusedClass>
+		<PossiblyUnusedMethod>
+			<errorLevel type="suppress">
+				<directory name="Classes"/>
+			</errorLevel>
+		</PossiblyUnusedMethod>
+		<MissingOverrideAttribute>
+			<errorLevel type="suppress">
+				<directory name="Classes"/>
+			</errorLevel>
+		</MissingOverrideAttribute>
+	</issueHandlers>
+</psalm>
