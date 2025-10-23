@@ -88,47 +88,6 @@ class CustomDeleteHandler {
     })
   }
 
-  private showErrorModal(data: ChildCheckResponse): void {
-    const childLabel = this.getChildLabel(data.childCount)
-
-    const errorPrefix = TYPO3.lang['error.prefix'] || 'Error:'
-    const notAllowed = TYPO3.lang['error.not_allowed'] || 'You are not allowed to delete pages with children.'
-    const hasChildren = (TYPO3.lang['error.has_children'] || 'This page has %d %s and cannot be deleted.')
-      .replaceAll('%d', `<strong>${data.childCount}</strong>`)
-      .replaceAll('%s', `<strong>${childLabel}</strong>`)
-    const instruction = TYPO3.lang['error.instruction'] || 'Please delete the child pages first or contact your administrator for permissions.'
-
-    const content = document.createElement('div')
-    content.innerHTML = `
-      <p><strong>${errorPrefix}</strong> ${notAllowed}</p>
-      <p>${hasChildren}</p>
-      <p>${instruction}</p>
-    `
-
-    Modal.advanced({
-      title: TYPO3.lang['error.title'] || 'Deletion Not Allowed',
-      content,
-      severity: SeverityEnum.error,
-      buttons: [
-        {
-          text: TYPO3.lang['button.ok'] || 'OK',
-          active: true,
-          btnClass: 'btn-default',
-          name: 'ok',
-          trigger: (_event: Event, modal: ModalElement): void => {
-            modal.hideModal()
-          }
-        }
-      ]
-    })
-  }
-
-  private getChildLabel(count: number): string {
-    return count === 1
-      ? (TYPO3.lang['label.subpage'] || 'subpage')
-      : (TYPO3.lang['label.subpages'] || 'subpages')
-  }
-
   private promptWarning(data: ChildCheckResponse): Promise<boolean> {
     return new Promise((resolve) => {
       const childLabel = this.getChildLabel(data.childCount)
@@ -181,6 +140,47 @@ class CustomDeleteHandler {
         ]
       })
     })
+  }
+
+  private showErrorModal(data: ChildCheckResponse): void {
+    const childLabel = this.getChildLabel(data.childCount)
+
+    const errorPrefix = TYPO3.lang['error.prefix'] || 'Error:'
+    const notAllowed = TYPO3.lang['error.not_allowed'] || 'You are not allowed to delete pages with children.'
+    const hasChildren = (TYPO3.lang['error.has_children'] || 'This page has %d %s and cannot be deleted.')
+      .replaceAll('%d', `<strong>${data.childCount}</strong>`)
+      .replaceAll('%s', `<strong>${childLabel}</strong>`)
+    const instruction = TYPO3.lang['error.instruction'] || 'Please delete the child pages first or contact your administrator for permissions.'
+
+    const content = document.createElement('div')
+    content.innerHTML = `
+      <p><strong>${errorPrefix}</strong> ${notAllowed}</p>
+      <p>${hasChildren}</p>
+      <p>${instruction}</p>
+    `
+
+    Modal.advanced({
+      title: TYPO3.lang['error.title'] || 'Deletion Not Allowed',
+      content,
+      severity: SeverityEnum.error,
+      buttons: [
+        {
+          text: TYPO3.lang['button.ok'] || 'OK',
+          active: true,
+          btnClass: 'btn-default',
+          name: 'ok',
+          trigger: (_event: Event, modal: ModalElement): void => {
+            modal.hideModal()
+          }
+        }
+      ]
+    })
+  }
+
+  private getChildLabel(count: number): string {
+    return count === 1
+      ? (TYPO3.lang['label.subpage'] || 'subpage')
+      : (TYPO3.lang['label.subpages'] || 'subpages')
   }
 }
 
