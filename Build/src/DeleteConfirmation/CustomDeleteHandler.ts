@@ -89,9 +89,7 @@ class CustomDeleteHandler {
   }
 
   private showErrorModal(data: ChildCheckResponse): void {
-    const childLabel = data.childCount === 1
-      ? (TYPO3.lang['label.subpage'] || 'subpage')
-      : (TYPO3.lang['label.subpages'] || 'subpages')
+    const childLabel = this.getChildLabel(data.childCount)
 
     const errorPrefix = TYPO3.lang['error.prefix'] || 'Error:'
     const notAllowed = TYPO3.lang['error.not_allowed'] || 'You are not allowed to delete pages with children.'
@@ -125,11 +123,15 @@ class CustomDeleteHandler {
     })
   }
 
+  private getChildLabel(count: number): string {
+    return count === 1
+      ? (TYPO3.lang['label.subpage'] || 'subpage')
+      : (TYPO3.lang['label.subpages'] || 'subpages')
+  }
+
   private promptWarning(data: ChildCheckResponse): Promise<boolean> {
     return new Promise((resolve) => {
-      const childLabel = data.childCount === 1
-        ? (TYPO3.lang['label.subpage'] || 'subpage')
-        : (TYPO3.lang['label.subpages'] || 'subpages')
+      const childLabel = this.getChildLabel(data.childCount)
 
       const warningPrefix = TYPO3.lang['warning.prefix'] || 'Warning:'
       const hasChildren = (TYPO3.lang['warning.has_children'] || 'This page has %d %s.')
