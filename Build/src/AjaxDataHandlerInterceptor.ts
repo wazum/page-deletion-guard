@@ -5,6 +5,8 @@ import CustomDeleteHandler from './DeleteConfirmation/CustomDeleteHandler.js'
 type DeleteCommand = string | { cmd?: { pages?: Record<string, { delete?: number }> } }
 
 class DeleteInterceptor {
+  private static readonly PAGE_DELETE_PATTERN = /cmd\[pages\]\[(\d+)\]\[delete\]=1/
+
   private originalContextMenuDelete: typeof ContextMenuActions.deleteRecord
   private originalAjaxDataHandlerProcess: typeof AjaxDataHandler.process
 
@@ -72,7 +74,7 @@ class DeleteInterceptor {
       }
 
       const decodedUri = decodeURIComponent(dataUri)
-      const pageDeleteMatch = decodedUri.match(/cmd\[pages\]\[(\d+)\]\[delete\]=1/)
+      const pageDeleteMatch = decodedUri.match(DeleteInterceptor.PAGE_DELETE_PATTERN)
 
       if (!pageDeleteMatch) {
         return
@@ -110,7 +112,7 @@ class DeleteInterceptor {
 
   private extractPageUid(command: DeleteCommand): string | null {
     if (typeof command === 'string') {
-      const match = command.match(/cmd\[pages\]\[(\d+)\]\[delete\]=1/)
+      const match = command.match(DeleteInterceptor.PAGE_DELETE_PATTERN)
       return match ? match[1] : null
     }
 
