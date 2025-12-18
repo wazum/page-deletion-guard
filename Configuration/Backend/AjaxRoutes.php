@@ -9,5 +9,6 @@ return [
         'path' => '/page-deletion-guard/check-children',
         'target' => ChildPageCheckController::class . '::checkChildrenAction',
         'methods' => ['GET'],
+        'access' => 'user',
     ],
 ];
