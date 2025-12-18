@@ -71,6 +71,7 @@ class DeleteInterceptor {
         const iframeWin = iframe.contentWindow
         if (iframeDoc && iframeWin) {
           this.addModalTriggerListener(iframeDoc, iframeWin)
+          this.addRecordDeleteListener(iframeDoc, iframeWin)
         }
       } catch {
         // Cross-origin iframe, ignore
@@ -143,6 +144,46 @@ class DeleteInterceptor {
         }
       } catch {
         win.location.href = dataUri
+      }
+    }, true)
+  }
+
+  private addRecordDeleteListener(doc: Document, win: Window): void {
+    doc.addEventListener('click', async (event: Event) => {
+      const target = event.target as HTMLElement
+      const deleteButton = target.closest('.t3js-record-delete') as HTMLElement
+
+      if (!deleteButton) {
+        return
+      }
+
+      const dataParams = deleteButton.dataset.params
+      if (!dataParams) {
+        return
+      }
+
+      const pageDeleteMatch = dataParams.match(DeleteInterceptor.PAGE_DELETE_PATTERN)
+      if (!pageDeleteMatch) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopImmediatePropagation()
+
+      const pageUid = pageDeleteMatch[1]
+
+      try {
+        const shouldProceed = await CustomDeleteHandler.checkAndShowModal('pages', pageUid)
+
+        if (shouldProceed) {
+          await this.originalAjaxDataHandlerProcess(dataParams)
+          ContextMenuActions.refreshPageTree()
+          win.location.reload()
+        }
+      } catch {
+        await this.originalAjaxDataHandlerProcess(dataParams)
+        ContextMenuActions.refreshPageTree()
+        win.location.reload()
       }
     }, true)
   }

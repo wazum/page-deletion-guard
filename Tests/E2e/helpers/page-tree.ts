@@ -56,10 +56,9 @@ export async function openListModule(page: Page, pageId: number = 1): Promise<vo
 }
 
 export async function clickDeleteButtonInList(page: Page, pageTitle: string): Promise<void> {
+  const config = getTypo3Config(getTypo3Version());
   const iframe = page.frameLocator('iframe');
-  const pageLink = iframe.getByRole('link').filter({ hasText: pageTitle }).first();
-  await expect(pageLink).toBeVisible({ timeout: 10000 });
-  const row = iframe.getByRole('row').filter({ has: pageLink });
-  const deleteButton = row.getByRole('button', { name: /Delete record/ });
+  const deleteButton = config.listDeleteButtonSelector(iframe, pageTitle);
+  await expect(deleteButton).toBeVisible({ timeout: 10000 });
   await deleteButton.click();
 }
