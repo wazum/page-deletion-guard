@@ -2,7 +2,7 @@
   "name": "wazum/page-deletion-guard",
   "type": "typo3-cms-extension",
   "description": "Prevents deletion of pages with children in TYPO3 backend",
-  "license": "GPL-3.0",
+  "license": "GPL-2.0-or-later",
   "authors": [
     {
       "name": "Wolfgang Klinger",
