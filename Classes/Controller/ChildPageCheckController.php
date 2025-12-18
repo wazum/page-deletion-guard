@@ -8,11 +8,10 @@ use Doctrine\DBAL\Exception;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
-use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
+use Wazum\PageDeletionGuard\Service\QueryRestrictionFactoryInterface;
 use Wazum\PageDeletionGuard\Service\Settings;
 use Wazum\PageDeletionGuard\Service\SettingsFactory;
 
@@ -23,6 +22,7 @@ final readonly class ChildPageCheckController
         private ConnectionPool $connectionPool,
         private PageDeletionGuardService $guardService,
         private BackendUserProviderInterface $userProvider,
+        private QueryRestrictionFactoryInterface $restrictionFactory,
     ) {
     }
 
@@ -81,10 +81,12 @@ final readonly class ChildPageCheckController
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
 
         $queryBuilder->getRestrictions()->removeAll();
-        $queryBuilder->getRestrictions()->add(new DeletedRestriction());
+        $queryBuilder->getRestrictions()->add($this->restrictionFactory->createDeletedRestriction());
 
         if ($settings->respectWorkspaces) {
-            $queryBuilder->getRestrictions()->add(new WorkspaceRestriction($this->userProvider->getWorkspaceId()));
+            $queryBuilder->getRestrictions()->add(
+                $this->restrictionFactory->createWorkspaceRestriction($this->userProvider->getWorkspaceId())
+            );
         }
 
         $record = $queryBuilder

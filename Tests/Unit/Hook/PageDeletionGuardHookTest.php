@@ -13,6 +13,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionContainerInterface;
+use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionInterface;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -21,6 +22,7 @@ use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use Wazum\PageDeletionGuard\Hook\PageDeletionGuardHook;
 use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
+use Wazum\PageDeletionGuard\Service\QueryRestrictionFactoryInterface;
 use Wazum\PageDeletionGuard\Service\SettingsFactory;
 
 final class PageDeletionGuardHookTest extends TestCase
@@ -196,7 +198,8 @@ final class PageDeletionGuardHookTest extends TestCase
         $flashMessageQueue = $this->createMock(FlashMessageQueue::class);
         $flashMessageService->method('getMessageQueueByIdentifier')->willReturn($flashMessageQueue);
 
-        $guardService = new PageDeletionGuardService($userProvider, $connectionPool);
+        $restrictionFactory = $this->createMockRestrictionFactory();
+        $guardService = new PageDeletionGuardService($userProvider, $connectionPool, $restrictionFactory);
 
         $languageService = $this->createMock(LanguageService::class);
         $languageService->method('sL')->willReturnCallback(static function (string $key) {
@@ -213,5 +216,16 @@ final class PageDeletionGuardHookTest extends TestCase
         $languageServiceFactory->method('create')->willReturn($languageService);
 
         return new PageDeletionGuardHook($settingsFactory, $flashMessageService, $guardService, $userProvider, $languageServiceFactory);
+    }
+
+    private function createMockRestrictionFactory(): QueryRestrictionFactoryInterface
+    {
+        $restriction = $this->createMock(QueryRestrictionInterface::class);
+
+        $factory = $this->createMock(QueryRestrictionFactoryInterface::class);
+        $factory->method('createDeletedRestriction')->willReturn($restriction);
+        $factory->method('createWorkspaceRestriction')->willReturn($restriction);
+
+        return $factory;
     }
 }

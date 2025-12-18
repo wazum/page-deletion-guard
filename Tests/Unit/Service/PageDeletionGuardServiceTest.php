@@ -11,8 +11,10 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionContainerInterface;
+use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionInterface;
 use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
+use Wazum\PageDeletionGuard\Service\QueryRestrictionFactoryInterface;
 use Wazum\PageDeletionGuard\Service\Settings;
 
 final class PageDeletionGuardServiceTest extends TestCase
@@ -116,7 +118,9 @@ final class PageDeletionGuardServiceTest extends TestCase
         $connectionPool = $this->createMock(ConnectionPool::class);
         $connectionPool->method('getQueryBuilderForTable')->willReturn($queryBuilder);
 
-        return new PageDeletionGuardService($userProvider, $connectionPool);
+        $restrictionFactory = $this->createMockRestrictionFactory();
+
+        return new PageDeletionGuardService($userProvider, $connectionPool, $restrictionFactory);
     }
 
     private function createServiceWithRestrictionContainer(
@@ -149,7 +153,20 @@ final class PageDeletionGuardServiceTest extends TestCase
         $connectionPool = $this->createMock(ConnectionPool::class);
         $connectionPool->method('getQueryBuilderForTable')->willReturn($queryBuilder);
 
-        return new PageDeletionGuardService($userProvider, $connectionPool);
+        $restrictionFactory = $this->createMockRestrictionFactory();
+
+        return new PageDeletionGuardService($userProvider, $connectionPool, $restrictionFactory);
+    }
+
+    private function createMockRestrictionFactory(): QueryRestrictionFactoryInterface
+    {
+        $restriction = $this->createMock(QueryRestrictionInterface::class);
+
+        $factory = $this->createMock(QueryRestrictionFactoryInterface::class);
+        $factory->method('createDeletedRestriction')->willReturn($restriction);
+        $factory->method('createWorkspaceRestriction')->willReturn($restriction);
+
+        return $factory;
     }
 
     private function createMockQueryBuilder(int $childCount): QueryBuilder

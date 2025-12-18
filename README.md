@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/wazum/page-deletion-guard/workflows/CI/badge.svg)](https://github.com/wazum/page-deletion-guard/actions)
 [![PHP](https://img.shields.io/badge/PHP-8.2%20|%208.3%20|%208.4-blue.svg)](https://www.php.net/)
-[![TYPO3](https://img.shields.io/badge/TYPO3-12.4%20|%2013.4-orange.svg)](https://typo3.org/)
+[![TYPO3](https://img.shields.io/badge/TYPO3-12.4%20|%2013.4%20|%2014-orange.svg)](https://typo3.org/)
 [![License](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](LICENSE)
 
 A TYPO3 extension that prevents accidental deletion of pages with child pages in the backend. This extension restores the safety guard that was removed in TYPO3 v11 ([Breaking Change #92560](https://docs.typo3.org/c/typo3/cms-core/main/en-us/Changelog/11.0/Breaking-92560-BackendEditorsCanAlwaysDeletePagesRecursive.html)).

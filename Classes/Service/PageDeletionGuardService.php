@@ -6,14 +6,13 @@ namespace Wazum\PageDeletionGuard\Service;
 
 use Doctrine\DBAL\Exception;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
-use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 
 final readonly class PageDeletionGuardService
 {
     public function __construct(
         private BackendUserProviderInterface $userProvider,
         private ConnectionPool $connectionPool,
+        private QueryRestrictionFactoryInterface $restrictionFactory,
     ) {
     }
 
@@ -30,10 +29,12 @@ final readonly class PageDeletionGuardService
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
 
         $queryBuilder->getRestrictions()->removeAll();
-        $queryBuilder->getRestrictions()->add(new DeletedRestriction());
+        $queryBuilder->getRestrictions()->add($this->restrictionFactory->createDeletedRestriction());
 
         if ($settings->respectWorkspaces) {
-            $queryBuilder->getRestrictions()->add(new WorkspaceRestriction($this->userProvider->getWorkspaceId()));
+            $queryBuilder->getRestrictions()->add(
+                $this->restrictionFactory->createWorkspaceRestriction($this->userProvider->getWorkspaceId())
+            );
         }
 
         return (int) $queryBuilder

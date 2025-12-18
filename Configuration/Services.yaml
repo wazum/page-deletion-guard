@@ -10,6 +10,9 @@ services:
   Wazum\PageDeletionGuard\Service\BackendUserProviderInterface:
     alias: Wazum\PageDeletionGuard\Service\BackendUserProvider
 
+  Wazum\PageDeletionGuard\Service\QueryRestrictionFactoryInterface:
+    alias: Wazum\PageDeletionGuard\Service\QueryRestrictionFactory
+
   Wazum\PageDeletionGuard\Service\SettingsFactory:
     public: true
 

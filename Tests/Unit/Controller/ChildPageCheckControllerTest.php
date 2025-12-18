@@ -13,10 +13,12 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionContainerInterface;
+use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionInterface;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use Wazum\PageDeletionGuard\Controller\ChildPageCheckController;
 use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
+use Wazum\PageDeletionGuard\Service\QueryRestrictionFactoryInterface;
 use Wazum\PageDeletionGuard\Service\SettingsFactory;
 
 final class ChildPageCheckControllerTest extends TestCase
@@ -148,8 +150,21 @@ final class ChildPageCheckControllerTest extends TestCase
 
         $connectionPool->method('getQueryBuilderForTable')->willReturn($queryBuilder);
 
-        $guardService = new PageDeletionGuardService($userProvider, $connectionPool);
+        $restrictionFactory = $this->createMockRestrictionFactory();
 
-        return new ChildPageCheckController($settingsFactory, $connectionPool, $guardService, $userProvider);
+        $guardService = new PageDeletionGuardService($userProvider, $connectionPool, $restrictionFactory);
+
+        return new ChildPageCheckController($settingsFactory, $connectionPool, $guardService, $userProvider, $restrictionFactory);
+    }
+
+    private function createMockRestrictionFactory(): QueryRestrictionFactoryInterface
+    {
+        $restriction = $this->createMock(QueryRestrictionInterface::class);
+
+        $factory = $this->createMock(QueryRestrictionFactoryInterface::class);
+        $factory->method('createDeletedRestriction')->willReturn($restriction);
+        $factory->method('createWorkspaceRestriction')->willReturn($restriction);
+
+        return $factory;
     }
 }
