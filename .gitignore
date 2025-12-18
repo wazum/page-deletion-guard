@@ -15,6 +15,10 @@ Resources/Public/Css/
 # Testing
 /.phpunit.cache
 /.phpunit.result.cache
+Tests/E2e/.auth/
+Tests/E2e/node_modules/
+Tests/E2e/test-results/
+Tests/E2e/package-lock.json
 
 # Composer
 /composer.lock

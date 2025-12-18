@@ -60,7 +60,57 @@ class DeleteInterceptor {
   }
 
   private interceptModalTriggers(): void {
-    document.addEventListener('click', async (event: Event) => {
+    this.addModalTriggerListener(document, window)
+    this.watchForIframes()
+  }
+
+  private watchForIframes(): void {
+    const processIframe = (iframe: HTMLIFrameElement): void => {
+      try {
+        const iframeDoc = iframe.contentDocument
+        const iframeWin = iframe.contentWindow
+        if (iframeDoc && iframeWin) {
+          this.addModalTriggerListener(iframeDoc, iframeWin)
+        }
+      } catch {
+        // Cross-origin iframe, ignore
+      }
+    }
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof HTMLIFrameElement) {
+            node.addEventListener('load', () => processIframe(node))
+            if (node.contentDocument?.readyState === 'complete') {
+              processIframe(node)
+            }
+          }
+          if (node instanceof HTMLElement) {
+            const iframes = node.querySelectorAll('iframe')
+            iframes.forEach((iframe) => {
+              iframe.addEventListener('load', () => processIframe(iframe))
+              if (iframe.contentDocument?.readyState === 'complete') {
+                processIframe(iframe)
+              }
+            })
+          }
+        }
+      }
+    })
+
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    document.querySelectorAll('iframe').forEach((iframe) => {
+      iframe.addEventListener('load', () => processIframe(iframe))
+      if (iframe.contentDocument?.readyState === 'complete') {
+        processIframe(iframe)
+      }
+    })
+  }
+
+  private addModalTriggerListener(doc: Document, win: Window): void {
+    doc.addEventListener('click', async (event: Event) => {
       const target = event.target as HTMLElement
       const triggerButton = target.closest('.t3js-modal-trigger') as HTMLElement
 
@@ -89,10 +139,10 @@ class DeleteInterceptor {
         const shouldProceed = await CustomDeleteHandler.checkAndShowModal('pages', pageUid)
 
         if (shouldProceed) {
-          window.location.href = dataUri
+          win.location.href = dataUri
         }
-      } catch (error) {
-        window.location.href = dataUri
+      } catch {
+        win.location.href = dataUri
       }
     }, true)
   }

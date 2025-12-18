@@ -1,0 +1,115 @@
+name: E2E Tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/*'
+  pull_request:
+
+jobs:
+  e2e:
+    name: E2E (PHP ${{ matrix.php }} - TYPO3 ${{ matrix.typo3 }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            typo3: '12'
+          - php: '8.3'
+            typo3: '13'
+          - php: '8.4'
+            typo3: '14'
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: typo3
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: intl, pdo_mysql, gd, zip
+          tools: composer
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create TYPO3 project
+        run: composer create-project typo3/cms-base-distribution:^${{ matrix.typo3 }} typo3-test --no-interaction
+
+      - name: Install page-deletion-guard extension
+        run: |
+          cd typo3-test
+          composer config --unset platform.php
+          composer config repositories.page-deletion-guard path ../
+          composer require wazum/page-deletion-guard:@dev --no-interaction
+
+      - name: Setup TYPO3
+        run: |
+          cd typo3-test
+          ./vendor/bin/typo3 setup --driver=mysqli --host=127.0.0.1 --port=3306 \
+            --dbname=typo3 --username=root --password=root \
+            --admin-username=admin --admin-user-password=Password123! \
+            --admin-email=admin@example.com --project-name=test \
+            --server-type=other --no-interaction
+
+      - name: Copy test configuration
+        run: cp Tests/E2e/fixtures/additional.php typo3-test/config/system/additional.php
+
+      - name: Create site configuration
+        run: |
+          mkdir -p typo3-test/config/sites/main
+          printf '%s\n' \
+            "rootPageId: 1" \
+            "base: 'http://127.0.0.1:8080/'" \
+            "languages:" \
+            "  - title: English" \
+            "    enabled: true" \
+            "    languageId: 0" \
+            "    base: /" \
+            "    locale: en_US.UTF-8" \
+            "    navigationTitle: ''" \
+            "    flag: us" \
+            > typo3-test/config/sites/main/config.yaml
+
+      - name: Import test fixtures
+        run: mysql -h 127.0.0.1 -u root -proot typo3 < Tests/E2e/fixtures/database.sql
+
+      - name: Start PHP server
+        run: |
+          cd typo3-test/public
+          php -S 127.0.0.1:8080 &
+          sleep 5
+
+      - name: Run E2E tests
+        run: |
+          docker run --rm --network=host \
+            -v ${{ github.workspace }}:/work \
+            -w /work \
+            -e TYPO3_BASE_URL=http://127.0.0.1:8080 \
+            -e TYPO3_ADMIN_USER=admin \
+            -e TYPO3_ADMIN_PASS=docker \
+            -e HOME=/root \
+            mcr.microsoft.com/playwright:v1.57.0-jammy \
+            bash -c "cd Tests/E2e && npm ci && mkdir -p .auth && npm test"
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results-php${{ matrix.php }}-typo3-${{ matrix.typo3 }}
+          path: Tests/E2e/test-results/
+          retention-days: 7
