@@ -121,6 +121,7 @@ final class ChildPageCheckControllerTest extends TestCase
         $userProvider->method('isAdmin')->willReturn($isAdmin);
         $userProvider->method('getWorkspaceId')->willReturn(0);
         $userProvider->method('isAuthenticated')->willReturn(true);
+        $userProvider->method('getBackendUser')->willReturn(null);
 
         $connectionPool = $this->createMock(ConnectionPool::class);
 

@@ -110,6 +110,7 @@ final class PageDeletionGuardServiceTest extends TestCase
         $userProvider->method('isAdmin')->willReturn($isAdmin);
         $userProvider->method('getWorkspaceId')->willReturn($workspaceId);
         $userProvider->method('isAuthenticated')->willReturn($isAuthenticated);
+        $userProvider->method('getBackendUser')->willReturn(null);
 
         $queryBuilder = $this->createMockQueryBuilder($childCount);
         $connectionPool = $this->createMock(ConnectionPool::class);
@@ -128,6 +129,7 @@ final class PageDeletionGuardServiceTest extends TestCase
         $userProvider->method('isAdmin')->willReturn(false);
         $userProvider->method('getWorkspaceId')->willReturn($workspaceId);
         $userProvider->method('isAuthenticated')->willReturn(true);
+        $userProvider->method('getBackendUser')->willReturn(null);
 
         $statement = $this->createMock(Result::class);
         $statement->method('fetchOne')->willReturn($childCount);

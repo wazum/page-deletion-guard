@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Wazum\PageDeletionGuard\Service;
 
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+
 interface BackendUserProviderInterface
 {
     /**
@@ -16,4 +18,6 @@ interface BackendUserProviderInterface
     public function getWorkspaceId(): int;
 
     public function isAuthenticated(): bool;
+
+    public function getBackendUser(): ?BackendUserAuthentication;
 }

@@ -147,8 +147,6 @@ final class PageDeletionGuardHookTest extends TestCase
         int $childCount = 0,
         bool $isAdmin = false,
     ): PageDeletionGuardHook {
-        $this->setUpLanguageService();
-
         $config = [
             'enabled' => $enabled,
             'allowAdminBypass' => $allowAdminBypass,
@@ -162,11 +160,14 @@ final class PageDeletionGuardHookTest extends TestCase
         $extConfig->method('get')->willReturn($config);
         $settingsFactory = new SettingsFactory($extConfig);
 
+        $backendUser = $this->createMock(BackendUserAuthentication::class);
+
         $userProvider = $this->createMock(BackendUserProviderInterface::class);
         $userProvider->method('getUserGroupIds')->willReturn($userGroupIds);
         $userProvider->method('isAdmin')->willReturn($isAdmin);
         $userProvider->method('getWorkspaceId')->willReturn(0);
         $userProvider->method('isAuthenticated')->willReturn(true);
+        $userProvider->method('getBackendUser')->willReturn($backendUser);
 
         $connectionPool = $this->createMock(ConnectionPool::class);
 
@@ -211,23 +212,6 @@ final class PageDeletionGuardHookTest extends TestCase
         $languageServiceFactory->method('createFromUserPreferences')->willReturn($languageService);
         $languageServiceFactory->method('create')->willReturn($languageService);
 
-        return new PageDeletionGuardHook($settingsFactory, $flashMessageService, $guardService, $languageServiceFactory);
-    }
-
-    private function setUpLanguageService(): void
-    {
-        $backendUser = $this->createMock(BackendUserAuthentication::class);
-        $GLOBALS['BE_USER'] = $backendUser;
-
-        $languageService = $this->createMock(LanguageService::class);
-        $languageService->method('sL')->willReturnCallback(static function (string $key) {
-            return match ($key) {
-                'LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.title' => 'Page Deletion Blocked',
-                'LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.message' => 'Cannot delete page "%s": %d child page(s) exist. Delete child pages first.',
-                'LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:log.denied' => 'Page deletion blocked: "%s" (UID %d) has %d child page(s)',
-                default => $key,
-            };
-        });
-        $GLOBALS['LANG'] = $languageService;
+        return new PageDeletionGuardHook($settingsFactory, $flashMessageService, $guardService, $userProvider, $languageServiceFactory);
     }
 }

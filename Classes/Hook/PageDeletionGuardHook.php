@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Wazum\PageDeletionGuard\Hook;
 
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -12,6 +11,7 @@ use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
+use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
 use Wazum\PageDeletionGuard\Service\SettingsFactory;
 
@@ -23,9 +23,10 @@ final readonly class PageDeletionGuardHook
         private SettingsFactory $settingsFactory,
         private FlashMessageService $flashMessageService,
         private PageDeletionGuardService $guardService,
+        private BackendUserProviderInterface $userProvider,
         LanguageServiceFactory $languageServiceFactory,
     ) {
-        $backendUser = $this->getBackendUser();
+        $backendUser = $this->userProvider->getBackendUser();
         $this->languageService = $backendUser
             ? $languageServiceFactory->createFromUserPreferences($backendUser)
             : $languageServiceFactory->create('default');
@@ -100,10 +101,5 @@ final readonly class PageDeletionGuardHook
 
         // This sounds counterintuitive, but setting this to true prevents the deletion (and further processing).
         $recordWasDeleted = true;
-    }
-
-    private function getBackendUser(): ?BackendUserAuthentication
-    {
-        return $GLOBALS['BE_USER'] ?? null;
     }
 }

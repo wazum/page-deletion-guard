@@ -31,7 +31,7 @@ final readonly class BackendUserProvider implements BackendUserProviderInterface
         return null !== $this->getBackendUser();
     }
 
-    private function getBackendUser(): ?BackendUserAuthentication
+    public function getBackendUser(): ?BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'] ?? null;
     }
