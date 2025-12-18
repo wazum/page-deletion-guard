@@ -10,4 +10,10 @@ interface BackendUserProviderInterface
      * @return int[]
      */
     public function getUserGroupIds(): array;
+
+    public function isAdmin(): bool;
+
+    public function getWorkspaceId(): int;
+
+    public function isAuthenticated(): bool;
 }

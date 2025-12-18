@@ -16,6 +16,21 @@ final readonly class BackendUserProvider implements BackendUserProviderInterface
         return array_map('intval', $groupIds);
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->getBackendUser()?->isAdmin() ?? false;
+    }
+
+    public function getWorkspaceId(): int
+    {
+        return $this->getBackendUser()?->workspace ?? 0;
+    }
+
+    public function isAuthenticated(): bool
+    {
+        return null !== $this->getBackendUser();
+    }
+
     private function getBackendUser(): ?BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'] ?? null;

@@ -18,9 +18,3 @@ services:
 
   Wazum\PageDeletionGuard\Controller\ChildPageCheckController:
     public: true
-
-  Wazum\PageDeletionGuard\EventListener\BackendAssets:
-    tags:
-      - name: event.listener
-        identifier: 'page-deletion-guard/backend-assets'
-        event: TYPO3\CMS\Backend\Controller\Event\AfterBackendPageRenderEvent

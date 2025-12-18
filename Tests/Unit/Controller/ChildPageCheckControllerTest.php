@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Wazum\PageDeletionGuard\Tests\Unit\Controller;
 
+use Doctrine\DBAL\Result;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionContainerInterface;
 use TYPO3\CMS\Core\Http\JsonResponse;
 use Wazum\PageDeletionGuard\Controller\ChildPageCheckController;
 use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
@@ -38,11 +42,7 @@ final class ChildPageCheckControllerTest extends TestCase
     #[Test]
     public function returnsAllowedWhenUserIsAdmin(): void
     {
-        $backendUser = $this->createMock(\TYPO3\CMS\Core\Authentication\BackendUserAuthentication::class);
-        $backendUser->method('isAdmin')->willReturn(true);
-        $GLOBALS['BE_USER'] = $backendUser;
-
-        $controller = $this->createController(allowAdminBypass: true, childCount: 5);
+        $controller = $this->createController(allowAdminBypass: true, childCount: 5, isAdmin: true);
 
         $request = $this->createMock(ServerRequestInterface::class);
         $request->method('getQueryParams')->willReturn(['pageUid' => 123]);
@@ -53,8 +53,6 @@ final class ChildPageCheckControllerTest extends TestCase
         self::assertTrue($content['hasChildren'], 'Should report real children count even when admin can bypass');
         self::assertSame(5, $content['childCount'], 'Should return real child count even when admin can bypass');
         self::assertTrue($content['isAllowed'], 'Admin should be allowed when bypass enabled');
-
-        unset($GLOBALS['BE_USER']);
     }
 
     #[Test]
@@ -107,6 +105,7 @@ final class ChildPageCheckControllerTest extends TestCase
         bool $allowAdminBypass = false,
         int $childCount = 0,
         array $userGroupIds = [],
+        bool $isAdmin = false,
     ): ChildPageCheckController {
         $config = [
             'enabled' => $enabled,
@@ -119,17 +118,24 @@ final class ChildPageCheckControllerTest extends TestCase
 
         $userProvider = $this->createMock(BackendUserProviderInterface::class);
         $userProvider->method('getUserGroupIds')->willReturn($userGroupIds);
+        $userProvider->method('isAdmin')->willReturn($isAdmin);
+        $userProvider->method('getWorkspaceId')->willReturn(0);
+        $userProvider->method('isAuthenticated')->willReturn(true);
 
         $connectionPool = $this->createMock(ConnectionPool::class);
 
-        $statement = $this->createMock(\Doctrine\DBAL\Result::class);
+        $statement = $this->createMock(Result::class);
         $statement->method('fetchOne')->willReturn($childCount);
         $statement->method('fetchAssociative')->willReturn(['uid' => 123, 'title' => 'Test Page']);
 
-        $expr = $this->createMock(\TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder::class);
+        $expr = $this->createMock(ExpressionBuilder::class);
         $expr->method('eq')->willReturn('uid = 123');
 
-        $queryBuilder = $this->createMock(\TYPO3\CMS\Core\Database\Query\QueryBuilder::class);
+        $restrictionContainer = $this->createMock(QueryRestrictionContainerInterface::class);
+        $restrictionContainer->method('removeAll')->willReturnSelf();
+        $restrictionContainer->method('add')->willReturnSelf();
+
+        $queryBuilder = $this->createMock(QueryBuilder::class);
         $queryBuilder->method('count')->willReturnSelf();
         $queryBuilder->method('select')->willReturnSelf();
         $queryBuilder->method('from')->willReturnSelf();
@@ -137,11 +143,12 @@ final class ChildPageCheckControllerTest extends TestCase
         $queryBuilder->method('expr')->willReturn($expr);
         $queryBuilder->method('createNamedParameter')->willReturnCallback(static fn ($value) => (string) $value);
         $queryBuilder->method('executeQuery')->willReturn($statement);
+        $queryBuilder->method('getRestrictions')->willReturn($restrictionContainer);
 
         $connectionPool->method('getQueryBuilderForTable')->willReturn($queryBuilder);
 
         $guardService = new PageDeletionGuardService($userProvider, $connectionPool);
 
-        return new ChildPageCheckController($settingsFactory, $connectionPool, $guardService);
+        return new ChildPageCheckController($settingsFactory, $connectionPool, $guardService, $userProvider);
     }
 }

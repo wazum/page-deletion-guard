@@ -12,6 +12,7 @@ use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionContainerInterface;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -19,6 +20,7 @@ use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use Wazum\PageDeletionGuard\Hook\PageDeletionGuardHook;
 use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
+use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
 use Wazum\PageDeletionGuard\Service\SettingsFactory;
 
 final class PageDeletionGuardHookTest extends TestCase
@@ -61,7 +63,7 @@ final class PageDeletionGuardHookTest extends TestCase
                 1,
                 self::anything(),
                 null,
-                0, // MESSAGE level to avoid duplicate flash message from TYPO3
+                0,
                 self::stringContains('2 child page(s)')
             );
         $recordWasDeleted = false;
@@ -88,47 +90,31 @@ final class PageDeletionGuardHookTest extends TestCase
     #[Test]
     public function allowsAdminBypassWhenEnabled(): void
     {
-        $backendUser = $this->createMock(BackendUserAuthentication::class);
-        $backendUser->method('isAdmin')->willReturn(true);
-        $GLOBALS['BE_USER'] = $backendUser;
-
         $dataHandler = $this->createMock(DataHandler::class);
         $recordWasDeleted = false;
 
-        $hook = $this->createHook(allowAdminBypass: true, childCount: 2);
+        $hook = $this->createHook(allowAdminBypass: true, childCount: 2, isAdmin: true);
         $hook->processCmdmap_deleteAction('pages', 1, ['title' => 'Test Page'], $recordWasDeleted, $dataHandler);
 
         self::assertFalse($recordWasDeleted, 'Admin should bypass deletion guard when allowAdminBypass is enabled');
-
-        unset($GLOBALS['BE_USER']);
     }
 
     #[Test]
     public function blocksAdminWhenBypassDisabled(): void
     {
-        $backendUser = $this->createMock(BackendUserAuthentication::class);
-        $backendUser->method('isAdmin')->willReturn(true);
-        $GLOBALS['BE_USER'] = $backendUser;
-
         $dataHandler = $this->createMock(DataHandler::class);
         $dataHandler->expects(self::once())->method('log');
         $recordWasDeleted = false;
 
-        $hook = $this->createHook(allowAdminBypass: false, childCount: 2);
+        $hook = $this->createHook(allowAdminBypass: false, childCount: 2, isAdmin: true);
         $hook->processCmdmap_deleteAction('pages', 1, ['title' => 'Test Page'], $recordWasDeleted, $dataHandler);
 
         self::assertTrue($recordWasDeleted, 'Admin should not bypass deletion guard when allowAdminBypass is disabled');
-
-        unset($GLOBALS['BE_USER']);
     }
 
     #[Test]
     public function allowsBypassForConfiguredBackendGroups(): void
     {
-        $backendUser = $this->createMock(BackendUserAuthentication::class);
-        $backendUser->method('isAdmin')->willReturn(false);
-        $GLOBALS['BE_USER'] = $backendUser;
-
         $dataHandler = $this->createMock(DataHandler::class);
         $dataHandler->admin = false;
         $recordWasDeleted = false;
@@ -137,8 +123,6 @@ final class PageDeletionGuardHookTest extends TestCase
         $hook->processCmdmap_deleteAction('pages', 1, ['title' => 'Test Page'], $recordWasDeleted, $dataHandler);
 
         self::assertFalse($recordWasDeleted, 'User in bypass group should bypass deletion guard');
-
-        unset($GLOBALS['BE_USER']);
     }
 
     #[Test]
@@ -161,6 +145,7 @@ final class PageDeletionGuardHookTest extends TestCase
         array $bypassGroupIds = [],
         array $userGroupIds = [],
         int $childCount = 0,
+        bool $isAdmin = false,
     ): PageDeletionGuardHook {
         $this->setUpLanguageService();
 
@@ -179,6 +164,9 @@ final class PageDeletionGuardHookTest extends TestCase
 
         $userProvider = $this->createMock(BackendUserProviderInterface::class);
         $userProvider->method('getUserGroupIds')->willReturn($userGroupIds);
+        $userProvider->method('isAdmin')->willReturn($isAdmin);
+        $userProvider->method('getWorkspaceId')->willReturn(0);
+        $userProvider->method('isAuthenticated')->willReturn(true);
 
         $connectionPool = $this->createMock(ConnectionPool::class);
 
@@ -188,6 +176,10 @@ final class PageDeletionGuardHookTest extends TestCase
         $expr = $this->createMock(ExpressionBuilder::class);
         $expr->method('eq')->willReturn('pid = 1');
 
+        $restrictionContainer = $this->createMock(QueryRestrictionContainerInterface::class);
+        $restrictionContainer->method('removeAll')->willReturnSelf();
+        $restrictionContainer->method('add')->willReturnSelf();
+
         $queryBuilder = $this->createMock(QueryBuilder::class);
         $queryBuilder->method('count')->willReturnSelf();
         $queryBuilder->method('from')->willReturnSelf();
@@ -195,6 +187,7 @@ final class PageDeletionGuardHookTest extends TestCase
         $queryBuilder->method('expr')->willReturn($expr);
         $queryBuilder->method('createNamedParameter')->willReturnCallback(static fn ($value) => (string) $value);
         $queryBuilder->method('executeQuery')->willReturn($statement);
+        $queryBuilder->method('getRestrictions')->willReturn($restrictionContainer);
 
         $connectionPool->method('getQueryBuilderForTable')->willReturn($queryBuilder);
 
@@ -202,7 +195,7 @@ final class PageDeletionGuardHookTest extends TestCase
         $flashMessageQueue = $this->createMock(FlashMessageQueue::class);
         $flashMessageService->method('getMessageQueueByIdentifier')->willReturn($flashMessageQueue);
 
-        $guardService = new \Wazum\PageDeletionGuard\Service\PageDeletionGuardService($userProvider, $connectionPool);
+        $guardService = new PageDeletionGuardService($userProvider, $connectionPool);
 
         $languageService = $this->createMock(LanguageService::class);
         $languageService->method('sL')->willReturnCallback(static function (string $key) {
@@ -223,6 +216,9 @@ final class PageDeletionGuardHookTest extends TestCase
 
     private function setUpLanguageService(): void
     {
+        $backendUser = $this->createMock(BackendUserAuthentication::class);
+        $GLOBALS['BE_USER'] = $backendUser;
+
         $languageService = $this->createMock(LanguageService::class);
         $languageService->method('sL')->willReturnCallback(static function (string $key) {
             return match ($key) {

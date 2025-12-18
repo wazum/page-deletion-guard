@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Wazum\PageDeletionGuard\EventListener;
 
 use TYPO3\CMS\Backend\Controller\Event\AfterBackendPageRenderEvent;
+use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Page\PageRenderer;
 
+#[AsEventListener(identifier: 'page-deletion-guard/backend-assets')]
 final readonly class BackendAssets
 {
     public function __construct(

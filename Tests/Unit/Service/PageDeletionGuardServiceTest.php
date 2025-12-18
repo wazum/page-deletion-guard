@@ -7,7 +7,6 @@ namespace Wazum\PageDeletionGuard\Tests\Unit\Service;
 use Doctrine\DBAL\Result;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -31,30 +30,18 @@ final class PageDeletionGuardServiceTest extends TestCase
     public function shouldBypassWhenAdminBypassIsEnabled(): void
     {
         $settings = new Settings(enabled: true, allowAdminBypass: true, bypassGroupIds: [], respectWorkspaces: true);
-        $backendUser = $this->createMock(BackendUserAuthentication::class);
-        $backendUser->method('isAdmin')->willReturn(true);
-        $GLOBALS['BE_USER'] = $backendUser;
-
-        $service = $this->createService();
+        $service = $this->createService(isAdmin: true);
 
         self::assertTrue($service->shouldBypass($settings), 'Admin should bypass when allowAdminBypass is enabled');
-
-        unset($GLOBALS['BE_USER']);
     }
 
     #[Test]
     public function shouldBypassWhenUserIsInBypassGroup(): void
     {
         $settings = new Settings(enabled: true, allowAdminBypass: false, bypassGroupIds: [5, 10], respectWorkspaces: true);
-        $backendUser = $this->createMock(BackendUserAuthentication::class);
-        $backendUser->method('isAdmin')->willReturn(false);
-        $GLOBALS['BE_USER'] = $backendUser;
-
         $service = $this->createService(userGroupIds: [2, 5]);
 
         self::assertTrue($service->shouldBypass($settings), 'User in bypass group should bypass guard');
-
-        unset($GLOBALS['BE_USER']);
     }
 
     #[Test]
@@ -73,58 +60,56 @@ final class PageDeletionGuardServiceTest extends TestCase
     {
         $settings = new Settings(enabled: true, allowAdminBypass: true, bypassGroupIds: [], respectWorkspaces: true);
 
-        $backendUser = $this->createMock(BackendUserAuthentication::class);
-        $backendUser->workspace = 2;
-        $GLOBALS['BE_USER'] = $backendUser;
-
         $restrictionContainer = $this->createMock(QueryRestrictionContainerInterface::class);
         $restrictionContainer->expects(self::once())->method('removeAll')->willReturnSelf();
         $restrictionContainer->expects(self::exactly(2))->method('add')->willReturnSelf();
 
-        $service = $this->createServiceWithRestrictionContainer($restrictionContainer, 3);
+        $service = $this->createServiceWithRestrictionContainer($restrictionContainer, 3, workspaceId: 2);
 
         $count = $service->getChildCount(123, $settings);
 
         self::assertSame(3, $count);
-
-        unset($GLOBALS['BE_USER']);
     }
 
     #[Test]
     public function isUserAllowedToDeleteWithChildrenReturnsTrueForAdminWithBypass(): void
     {
         $settings = new Settings(enabled: true, allowAdminBypass: true, bypassGroupIds: [], respectWorkspaces: true);
-        $backendUser = $this->createMock(BackendUserAuthentication::class);
-        $backendUser->method('isAdmin')->willReturn(true);
-        $GLOBALS['BE_USER'] = $backendUser;
-
-        $service = $this->createService();
+        $service = $this->createService(isAdmin: true);
 
         self::assertTrue($service->isUserAllowedToDeleteWithChildren($settings));
-
-        unset($GLOBALS['BE_USER']);
     }
 
     #[Test]
     public function isUserAllowedToDeleteWithChildrenReturnsTrueForUserInBypassGroup(): void
     {
         $settings = new Settings(enabled: true, allowAdminBypass: false, bypassGroupIds: [5], respectWorkspaces: true);
-        $backendUser = $this->createMock(BackendUserAuthentication::class);
-        $backendUser->method('isAdmin')->willReturn(false);
-        $backendUser->userGroupsUID = [2, 5];
-        $GLOBALS['BE_USER'] = $backendUser;
-
         $service = $this->createService(userGroupIds: [2, 5]);
 
         self::assertTrue($service->isUserAllowedToDeleteWithChildren($settings));
-
-        unset($GLOBALS['BE_USER']);
     }
 
-    private function createService(array $userGroupIds = [], int $childCount = 0): PageDeletionGuardService
+    #[Test]
+    public function shouldNotBypassWhenUserIsNotAuthenticated(): void
     {
+        $settings = new Settings(enabled: true, allowAdminBypass: true, bypassGroupIds: [], respectWorkspaces: true);
+        $service = $this->createService(isAuthenticated: false);
+
+        self::assertFalse($service->shouldBypass($settings), 'Unauthenticated user should not bypass guard');
+    }
+
+    private function createService(
+        array $userGroupIds = [],
+        int $childCount = 0,
+        bool $isAdmin = false,
+        int $workspaceId = 0,
+        bool $isAuthenticated = true,
+    ): PageDeletionGuardService {
         $userProvider = $this->createMock(BackendUserProviderInterface::class);
         $userProvider->method('getUserGroupIds')->willReturn($userGroupIds);
+        $userProvider->method('isAdmin')->willReturn($isAdmin);
+        $userProvider->method('getWorkspaceId')->willReturn($workspaceId);
+        $userProvider->method('isAuthenticated')->willReturn($isAuthenticated);
 
         $queryBuilder = $this->createMockQueryBuilder($childCount);
         $connectionPool = $this->createMock(ConnectionPool::class);
@@ -133,9 +118,16 @@ final class PageDeletionGuardServiceTest extends TestCase
         return new PageDeletionGuardService($userProvider, $connectionPool);
     }
 
-    private function createServiceWithRestrictionContainer(QueryRestrictionContainerInterface $restrictionContainer, int $childCount): PageDeletionGuardService
-    {
+    private function createServiceWithRestrictionContainer(
+        QueryRestrictionContainerInterface $restrictionContainer,
+        int $childCount,
+        int $workspaceId = 0,
+    ): PageDeletionGuardService {
         $userProvider = $this->createMock(BackendUserProviderInterface::class);
+        $userProvider->method('getUserGroupIds')->willReturn([]);
+        $userProvider->method('isAdmin')->willReturn(false);
+        $userProvider->method('getWorkspaceId')->willReturn($workspaceId);
+        $userProvider->method('isAuthenticated')->willReturn(true);
 
         $statement = $this->createMock(Result::class);
         $statement->method('fetchOne')->willReturn($childCount);

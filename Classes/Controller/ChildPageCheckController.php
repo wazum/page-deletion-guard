@@ -11,7 +11,9 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 use TYPO3\CMS\Core\Http\JsonResponse;
+use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
+use Wazum\PageDeletionGuard\Service\Settings;
 use Wazum\PageDeletionGuard\Service\SettingsFactory;
 
 final readonly class ChildPageCheckController
@@ -20,6 +22,7 @@ final readonly class ChildPageCheckController
         private SettingsFactory $settingsFactory,
         private ConnectionPool $connectionPool,
         private PageDeletionGuardService $guardService,
+        private BackendUserProviderInterface $userProvider,
     ) {
     }
 
@@ -40,7 +43,6 @@ final readonly class ChildPageCheckController
         try {
             $settings = $this->settingsFactory->create();
 
-            // If guard is disabled, return no children so JS falls back to TYPO3's standard confirmation
             if (!$settings->enabled) {
                 return new JsonResponse([
                     'hasChildren' => false,
@@ -50,7 +52,7 @@ final readonly class ChildPageCheckController
                 ]);
             }
 
-            $pageRecord = $this->getPageRecord($pageUid);
+            $pageRecord = $this->getPageRecord($pageUid, $settings);
             $childCount = $this->guardService->getChildCount($pageUid, $settings);
             $canBypass = $this->guardService->shouldBypass($settings);
             $isAllowedToDeleteWithChildren = $this->guardService->isUserAllowedToDeleteWithChildren($settings);
@@ -74,17 +76,15 @@ final readonly class ChildPageCheckController
      *
      * @throws Exception
      */
-    private function getPageRecord(int $pageUid): array
+    private function getPageRecord(int $pageUid, Settings $settings): array
     {
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
 
         $queryBuilder->getRestrictions()->removeAll();
         $queryBuilder->getRestrictions()->add(new DeletedRestriction());
 
-        $settings = $this->settingsFactory->create();
         if ($settings->respectWorkspaces) {
-            $workspaceId = $GLOBALS['BE_USER']?->workspace ?? 0;
-            $queryBuilder->getRestrictions()->add(new WorkspaceRestriction($workspaceId));
+            $queryBuilder->getRestrictions()->add(new WorkspaceRestriction($this->userProvider->getWorkspaceId()));
         }
 
         $record = $queryBuilder
