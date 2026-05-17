@@ -65,11 +65,6 @@ final readonly class PageDeletionGuardService
             ->fetchOne();
     }
 
-    public function isUserAllowedToDeleteWithChildren(Settings $settings): bool
-    {
-        return $this->userMayBypass($settings);
-    }
-
     private function userMayBypass(Settings $settings): bool
     {
         if (!$this->userProvider->isAuthenticated()) {

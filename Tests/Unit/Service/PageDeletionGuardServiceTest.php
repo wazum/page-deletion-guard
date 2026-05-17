@@ -95,24 +95,6 @@ final class PageDeletionGuardServiceTest extends TestCase
     }
 
     #[Test]
-    public function isUserAllowedToDeleteWithChildrenReturnsTrueForAdminWithBypass(): void
-    {
-        $settings = new Settings(enabled: true, allowAdminBypass: true, bypassGroupIds: [], respectWorkspaces: true);
-        $service = $this->createService(isAdmin: true);
-
-        self::assertTrue($service->isUserAllowedToDeleteWithChildren($settings));
-    }
-
-    #[Test]
-    public function isUserAllowedToDeleteWithChildrenReturnsTrueForUserInBypassGroup(): void
-    {
-        $settings = new Settings(enabled: true, allowAdminBypass: false, bypassGroupIds: [5], respectWorkspaces: true);
-        $service = $this->createService(userGroupIds: [2, 5]);
-
-        self::assertTrue($service->isUserAllowedToDeleteWithChildren($settings));
-    }
-
-    #[Test]
     public function shouldNotBypassWhenUserIsNotAuthenticated(): void
     {
         $settings = new Settings(enabled: true, allowAdminBypass: true, bypassGroupIds: [], respectWorkspaces: true);

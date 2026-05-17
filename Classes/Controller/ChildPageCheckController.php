@@ -54,15 +54,12 @@ final readonly class ChildPageCheckController
 
             $pageRecord = $this->getPageRecord($pageUid, $settings);
             $childCount = $this->guardService->getChildCount($pageUid, $settings);
-            $canBypass = $this->guardService->shouldBypass($settings);
-            $isAllowedToDeleteWithChildren = $this->guardService->isUserAllowedToDeleteWithChildren($settings);
-            $isAllowed = $canBypass || $isAllowedToDeleteWithChildren;
 
             return new JsonResponse([
                 'hasChildren' => $childCount > 0,
                 'childCount' => $childCount,
                 'pageTitle' => $pageRecord['title'] ?? '',
-                'isAllowed' => $isAllowed,
+                'isAllowed' => $this->guardService->shouldBypass($settings),
             ]);
         } catch (\Throwable) {
             return new JsonResponse([
