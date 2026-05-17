@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -127,9 +128,8 @@ final class ChildPageCheckControllerTest extends TestCase
 
         $connectionPool = $this->createMock(ConnectionPool::class);
 
-        $statement = $this->createMock(Result::class);
-        $statement->method('fetchOne')->willReturn($childCount);
-        $statement->method('fetchAssociative')->willReturn(['uid' => 123, 'title' => 'Test Page']);
+        $pageLookupResult = $this->createMock(Result::class);
+        $pageLookupResult->method('fetchAssociative')->willReturn(['uid' => 123, 'title' => 'Test Page']);
 
         $expr = $this->createMock(ExpressionBuilder::class);
         $expr->method('eq')->willReturn('uid = 123');
@@ -139,20 +139,29 @@ final class ChildPageCheckControllerTest extends TestCase
         $restrictionContainer->method('add')->willReturnSelf();
 
         $queryBuilder = $this->createMock(QueryBuilder::class);
-        $queryBuilder->method('count')->willReturnSelf();
         $queryBuilder->method('select')->willReturnSelf();
         $queryBuilder->method('from')->willReturnSelf();
         $queryBuilder->method('where')->willReturnSelf();
         $queryBuilder->method('expr')->willReturn($expr);
-        $queryBuilder->method('createNamedParameter')->willReturnCallback(static fn ($value) => (string) $value);
-        $queryBuilder->method('executeQuery')->willReturn($statement);
+        $queryBuilder->method('createNamedParameter')->willReturnCallback(
+            static fn ($value) => is_array($value) ? ':list' : (string) $value
+        );
+        $queryBuilder->method('executeQuery')->willReturn($pageLookupResult);
         $queryBuilder->method('getRestrictions')->willReturn($restrictionContainer);
 
         $connectionPool->method('getQueryBuilderForTable')->willReturn($queryBuilder);
 
+        $cteResult = $this->createMock(Result::class);
+        $cteResult->method('fetchOne')->willReturn($childCount);
+
+        $connection = $this->createMock(Connection::class);
+        $connection->method('executeQuery')->willReturn($cteResult);
+
+        $connectionPool->method('getConnectionForTable')->willReturn($connection);
+
         $restrictionFactory = $this->createMockRestrictionFactory();
 
-        $guardService = new PageDeletionGuardService($userProvider, $connectionPool, $restrictionFactory);
+        $guardService = new PageDeletionGuardService($userProvider, $connectionPool);
 
         return new ChildPageCheckController($settingsFactory, $connectionPool, $guardService, $userProvider, $restrictionFactory);
     }

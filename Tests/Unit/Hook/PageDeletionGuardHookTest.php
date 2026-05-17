@@ -9,11 +9,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
-use TYPO3\CMS\Core\Database\Query\QueryBuilder;
-use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionContainerInterface;
-use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionInterface;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
@@ -23,7 +20,6 @@ use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use Wazum\PageDeletionGuard\Hook\PageDeletionGuardHook;
 use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
-use Wazum\PageDeletionGuard\Service\QueryRestrictionFactoryInterface;
 use Wazum\PageDeletionGuard\Service\SettingsFactory;
 
 final class PageDeletionGuardHookTest extends TestCase
@@ -204,37 +200,22 @@ final class PageDeletionGuardHookTest extends TestCase
 
         $connectionPool = $this->createMock(ConnectionPool::class);
 
-        $statement = $this->createMock(Result::class);
-        $statement->method('fetchOne')->willReturn($childCount);
+        $result = $this->createMock(Result::class);
+        $result->method('fetchOne')->willReturn($childCount);
 
-        $expr = $this->createMock(ExpressionBuilder::class);
-        $expr->method('eq')->willReturn('pid = 1');
-
-        $restrictionContainer = $this->createMock(QueryRestrictionContainerInterface::class);
-        $restrictionContainer->method('removeAll')->willReturnSelf();
-        $restrictionContainer->method('add')->willReturnSelf();
-
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $queryBuilder->method('count')->willReturnSelf();
-        $queryBuilder->method('from')->willReturnSelf();
-        $queryBuilder->method('where')->willReturnSelf();
-        $queryBuilder->method('expr')->willReturn($expr);
-        $queryBuilder->method('createNamedParameter')->willReturnCallback(static fn ($value) => (string) $value);
+        $connection = $this->createMock(Connection::class);
         if (null !== $queryException) {
-            $queryBuilder->method('executeQuery')->willThrowException($queryException);
+            $connection->method('executeQuery')->willThrowException($queryException);
         } else {
-            $queryBuilder->method('executeQuery')->willReturn($statement);
+            $connection->method('executeQuery')->willReturn($result);
         }
-        $queryBuilder->method('getRestrictions')->willReturn($restrictionContainer);
-
-        $connectionPool->method('getQueryBuilderForTable')->willReturn($queryBuilder);
+        $connectionPool->method('getConnectionForTable')->willReturn($connection);
 
         $flashMessageService = $this->createMock(FlashMessageService::class);
         $flashMessageQueue ??= $this->createMock(FlashMessageQueue::class);
         $flashMessageService->method('getMessageQueueByIdentifier')->willReturn($flashMessageQueue);
 
-        $restrictionFactory = $this->createMockRestrictionFactory();
-        $guardService = new PageDeletionGuardService($userProvider, $connectionPool, $restrictionFactory);
+        $guardService = new PageDeletionGuardService($userProvider, $connectionPool);
 
         $languageService = $this->createMock(LanguageService::class);
         $languageService->method('sL')->willReturnCallback(static function (string $key) {
@@ -253,16 +234,5 @@ final class PageDeletionGuardHookTest extends TestCase
         $languageServiceFactory->method('create')->willReturn($languageService);
 
         return new PageDeletionGuardHook($settingsFactory, $flashMessageService, $guardService, $userProvider, $languageServiceFactory);
-    }
-
-    private function createMockRestrictionFactory(): QueryRestrictionFactoryInterface
-    {
-        $restriction = $this->createMock(QueryRestrictionInterface::class);
-
-        $factory = $this->createMock(QueryRestrictionFactoryInterface::class);
-        $factory->method('createDeletedRestriction')->willReturn($restriction);
-        $factory->method('createWorkspaceRestriction')->willReturn($restriction);
-
-        return $factory;
     }
 }

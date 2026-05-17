@@ -7,14 +7,10 @@ namespace Wazum\PageDeletionGuard\Tests\Unit\Service;
 use Doctrine\DBAL\Result;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Expression\ExpressionBuilder;
-use TYPO3\CMS\Core\Database\Query\QueryBuilder;
-use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionContainerInterface;
-use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionInterface;
 use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
-use Wazum\PageDeletionGuard\Service\QueryRestrictionFactoryInterface;
 use Wazum\PageDeletionGuard\Service\Settings;
 
 final class PageDeletionGuardServiceTest extends TestCase
@@ -47,30 +43,55 @@ final class PageDeletionGuardServiceTest extends TestCase
     }
 
     #[Test]
-    public function getChildCountReturnsCorrectCount(): void
+    public function getChildCountReturnsDescendantCountFromCte(): void
     {
         $settings = new Settings(enabled: true, allowAdminBypass: true, bypassGroupIds: [], respectWorkspaces: false);
         $service = $this->createService(childCount: 5);
 
-        $count = $service->getChildCount(123, $settings);
-
-        self::assertSame(5, $count, 'Should return correct child count');
+        self::assertSame(5, $service->getChildCount(123, $settings));
     }
 
     #[Test]
-    public function getChildCountPassesWorkspaceIdToRestrictionWhenRespectWorkspacesEnabled(): void
+    public function getChildCountIssuesSingleRecursiveCteQuery(): void
+    {
+        $settings = new Settings(enabled: true, allowAdminBypass: true, bypassGroupIds: [], respectWorkspaces: false);
+
+        $capturedSql = null;
+        $service = $this->createServiceCapturingSql(7, $capturedSql);
+
+        self::assertSame(7, $service->getChildCount(123, $settings));
+        self::assertIsString($capturedSql);
+        self::assertStringContainsString('WITH RECURSIVE', $capturedSql);
+        self::assertStringContainsString('UNION ALL', $capturedSql);
+    }
+
+    #[Test]
+    public function getChildCountAddsWorkspaceClauseWhenRespectWorkspacesEnabled(): void
     {
         $settings = new Settings(enabled: true, allowAdminBypass: true, bypassGroupIds: [], respectWorkspaces: true);
 
-        $restrictionContainer = $this->createMock(QueryRestrictionContainerInterface::class);
-        $restrictionContainer->expects(self::once())->method('removeAll')->willReturnSelf();
-        $restrictionContainer->expects(self::exactly(2))->method('add')->willReturnSelf();
+        $capturedSql = null;
+        $capturedParams = null;
+        $service = $this->createServiceCapturingSql(3, $capturedSql, $capturedParams, workspaceId: 2);
 
-        $service = $this->createServiceWithRestrictionContainer($restrictionContainer, 3, workspaceId: 2);
+        self::assertSame(3, $service->getChildCount(123, $settings));
+        self::assertIsString($capturedSql);
+        self::assertStringContainsString('t3ver_wsid', $capturedSql);
+        self::assertIsArray($capturedParams);
+        self::assertSame(2, $capturedParams['workspaceId'] ?? null);
+    }
 
-        $count = $service->getChildCount(123, $settings);
+    #[Test]
+    public function getChildCountOmitsWorkspaceClauseWhenRespectWorkspacesDisabled(): void
+    {
+        $settings = new Settings(enabled: true, allowAdminBypass: true, bypassGroupIds: [], respectWorkspaces: false);
 
-        self::assertSame(3, $count);
+        $capturedSql = null;
+        $service = $this->createServiceCapturingSql(0, $capturedSql);
+
+        $service->getChildCount(123, $settings);
+        self::assertIsString($capturedSql);
+        self::assertStringNotContainsString('t3ver_wsid', $capturedSql);
     }
 
     #[Test]
@@ -114,18 +135,16 @@ final class PageDeletionGuardServiceTest extends TestCase
         $userProvider->method('isAuthenticated')->willReturn($isAuthenticated);
         $userProvider->method('getBackendUser')->willReturn(null);
 
-        $queryBuilder = $this->createMockQueryBuilder($childCount);
         $connectionPool = $this->createMock(ConnectionPool::class);
-        $connectionPool->method('getQueryBuilderForTable')->willReturn($queryBuilder);
+        $connectionPool->method('getConnectionForTable')->willReturn($this->createConnectionReturning($childCount));
 
-        $restrictionFactory = $this->createMockRestrictionFactory();
-
-        return new PageDeletionGuardService($userProvider, $connectionPool, $restrictionFactory);
+        return new PageDeletionGuardService($userProvider, $connectionPool);
     }
 
-    private function createServiceWithRestrictionContainer(
-        QueryRestrictionContainerInterface $restrictionContainer,
+    private function createServiceCapturingSql(
         int $childCount,
+        ?string &$capturedSql,
+        ?array &$capturedParams = null,
         int $workspaceId = 0,
     ): PageDeletionGuardService {
         $userProvider = $this->createMock(BackendUserProviderInterface::class);
@@ -135,61 +154,33 @@ final class PageDeletionGuardServiceTest extends TestCase
         $userProvider->method('isAuthenticated')->willReturn(true);
         $userProvider->method('getBackendUser')->willReturn(null);
 
-        $statement = $this->createMock(Result::class);
-        $statement->method('fetchOne')->willReturn($childCount);
+        $result = $this->createMock(Result::class);
+        $result->method('fetchOne')->willReturn($childCount);
 
-        $expr = $this->createMock(ExpressionBuilder::class);
-        $expr->method('eq')->willReturn('pid = 1');
+        $connection = $this->createMock(Connection::class);
+        $connection->method('executeQuery')->willReturnCallback(
+            static function (string $sql, array $params = [], array $types = []) use (&$capturedSql, &$capturedParams, $result) {
+                $capturedSql = $sql;
+                $capturedParams = $params;
 
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $queryBuilder->method('count')->willReturnSelf();
-        $queryBuilder->method('from')->willReturnSelf();
-        $queryBuilder->method('where')->willReturnSelf();
-        $queryBuilder->method('expr')->willReturn($expr);
-        $queryBuilder->method('createNamedParameter')->willReturnCallback(static fn ($value) => (string) $value);
-        $queryBuilder->method('executeQuery')->willReturn($statement);
-        $queryBuilder->method('getRestrictions')->willReturn($restrictionContainer);
+                return $result;
+            }
+        );
 
         $connectionPool = $this->createMock(ConnectionPool::class);
-        $connectionPool->method('getQueryBuilderForTable')->willReturn($queryBuilder);
+        $connectionPool->method('getConnectionForTable')->willReturn($connection);
 
-        $restrictionFactory = $this->createMockRestrictionFactory();
-
-        return new PageDeletionGuardService($userProvider, $connectionPool, $restrictionFactory);
+        return new PageDeletionGuardService($userProvider, $connectionPool);
     }
 
-    private function createMockRestrictionFactory(): QueryRestrictionFactoryInterface
+    private function createConnectionReturning(int $childCount): Connection
     {
-        $restriction = $this->createMock(QueryRestrictionInterface::class);
+        $result = $this->createMock(Result::class);
+        $result->method('fetchOne')->willReturn($childCount);
 
-        $factory = $this->createMock(QueryRestrictionFactoryInterface::class);
-        $factory->method('createDeletedRestriction')->willReturn($restriction);
-        $factory->method('createWorkspaceRestriction')->willReturn($restriction);
+        $connection = $this->createMock(Connection::class);
+        $connection->method('executeQuery')->willReturn($result);
 
-        return $factory;
-    }
-
-    private function createMockQueryBuilder(int $childCount): QueryBuilder
-    {
-        $statement = $this->createMock(Result::class);
-        $statement->method('fetchOne')->willReturn($childCount);
-
-        $expr = $this->createMock(ExpressionBuilder::class);
-        $expr->method('eq')->willReturn('pid = 1');
-
-        $restrictionContainer = $this->createMock(QueryRestrictionContainerInterface::class);
-        $restrictionContainer->method('removeAll')->willReturnSelf();
-        $restrictionContainer->method('add')->willReturnSelf();
-
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $queryBuilder->method('count')->willReturnSelf();
-        $queryBuilder->method('from')->willReturnSelf();
-        $queryBuilder->method('where')->willReturnSelf();
-        $queryBuilder->method('expr')->willReturn($expr);
-        $queryBuilder->method('createNamedParameter')->willReturnCallback(static fn ($value) => (string) $value);
-        $queryBuilder->method('executeQuery')->willReturn($statement);
-        $queryBuilder->method('getRestrictions')->willReturn($restrictionContainer);
-
-        return $queryBuilder;
+        return $connection;
     }
 }
