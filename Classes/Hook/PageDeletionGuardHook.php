@@ -10,6 +10,8 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
+use TYPO3\CMS\Core\SysLog\Action\Database as DatabaseAction;
+use TYPO3\CMS\Core\SysLog\Error as SystemLogErrorClassification;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
@@ -93,7 +95,7 @@ final readonly class PageDeletionGuardHook
         $flashMessage = new FlashMessage($flashMessageText, $flashTitle, ContextualFeedbackSeverity::ERROR);
         $this->flashMessageService->getMessageQueueByIdentifier()->enqueue($flashMessage);
 
-        $dataHandler->log($table, $id, 3, null, 1, $logMessage);
+        $dataHandler->log($table, $id, DatabaseAction::DELETE, null, SystemLogErrorClassification::USER_ERROR, $logMessage);
 
         // Setting recordWasDeleted to true short-circuits DataHandler and prevents the deletion.
         $recordWasDeleted = true;
@@ -128,7 +130,7 @@ final readonly class PageDeletionGuardHook
         $flashMessage = new FlashMessage($flashMessageText, $flashTitle, ContextualFeedbackSeverity::ERROR);
         $this->flashMessageService->getMessageQueueByIdentifier()->enqueue($flashMessage);
 
-        $dataHandler->log($table, $id, 3, null, 0, $logMessage);
+        $dataHandler->log($table, $id, DatabaseAction::DELETE, null, SystemLogErrorClassification::MESSAGE, $logMessage);
 
         // This sounds counterintuitive, but setting this to true prevents the deletion (and further processing).
         $recordWasDeleted = true;
