@@ -5,8 +5,7 @@ Build/package-lock.json
 
 # Compiled artifacts
 /public/
-Resources/Public/JavaScript/
-Resources/Public/Css/
+/packages/
 
 # Build tools
 /php-cs-fixer.json
