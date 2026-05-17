@@ -51,9 +51,33 @@ class CustomDeleteHandler {
 
       const response = await new AjaxRequest(ajaxUrl).withQueryArguments({ pageUid }).get()
       const data = await response.resolve()
-      return data
+      return this.normalizeResponse(data)
     } catch (error) {
       return null
+    }
+  }
+
+  // The response feeds innerHTML in the modal body, so we cannot trust the JSON
+  // shape: a tampered or buggy response could inject arbitrary HTML. Coerce
+  // every field at the boundary; reject the response if the count is missing
+  // or not a finite, non-negative integer.
+  private normalizeResponse(data: unknown): ChildCheckResponse | null {
+    if (data === null || typeof data !== 'object') {
+      return null
+    }
+
+    const raw = data as Record<string, unknown>
+    const rawCount = typeof raw.childCount === 'number' ? raw.childCount : Number(raw.childCount)
+
+    if (!Number.isFinite(rawCount) || rawCount < 0) {
+      return null
+    }
+
+    return {
+      hasChildren: raw.hasChildren === true,
+      childCount: Math.trunc(rawCount),
+      pageTitle: typeof raw.pageTitle === 'string' ? raw.pageTitle : '',
+      isAllowed: raw.isAllowed === true,
     }
   }
 
