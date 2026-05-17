@@ -42,8 +42,7 @@ class CustomDeleteHandler {
 
   private async fetchChildInfo(pageUid: number): Promise<ChildCheckResponse | null> {
     try {
-      const ajaxUrl = TYPO3.settings.ajaxUrls.ajax_page_deletion_guard_check_children ||
-        TYPO3.settings.ajaxUrls.page_deletion_guard_check_children
+      const ajaxUrl = TYPO3.settings.ajaxUrls.page_deletion_guard_check_children
 
       if (!ajaxUrl) {
         return null
