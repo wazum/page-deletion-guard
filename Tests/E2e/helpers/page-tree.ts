@@ -8,8 +8,9 @@ function getTreeItemByName(page: Page, name: string): Locator {
 }
 
 export async function openPageModule(page: Page): Promise<void> {
+  const config = getTypo3Config(getTypo3Version());
   await page.goto('/typo3/module/web/layout');
-  await expect(page.locator('.scaffold-content-navigation-component')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator(config.navigationContainerSelector)).toBeVisible({ timeout: 15000 });
   await expect(getTreeItemByName(page, 'Root')).toBeVisible({ timeout: 15000 });
 }
 

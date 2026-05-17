@@ -1,24 +1,10 @@
 -- Page Deletion Guard E2E Test Fixtures
 
--- Admin user (uid=1)
--- Password: docker
-INSERT INTO `be_users` (`uid`, `pid`, `username`, `password`, `admin`, `usergroup`, `disable`, `deleted`, `tstamp`, `crdate`, `realName`, `email`, `lang`)
-VALUES (
-    1,
-    0,
-    'admin',
-    '$argon2i$v=19$m=65536,t=16,p=1$M2s3SFlCQkZZNXhjOVFNUg$+JVwo7NkqRqxQz7RhyvyE13SLth4mFaBrQdLNIGDQDo',
-    1,
-    '',
-    0,
-    0,
-    UNIX_TIMESTAMP(),
-    UNIX_TIMESTAMP(),
-    'Administrator',
-    'admin@example.com',
-    'default'
-)
-ON DUPLICATE KEY UPDATE `password` = VALUES(`password`), `lang` = VALUES(`lang`);
+-- Override the admin password to the E2E test password ("docker").
+UPDATE `be_users`
+SET `password` = '$argon2i$v=19$m=65536,t=16,p=1$M2s3SFlCQkZZNXhjOVFNUg$+JVwo7NkqRqxQz7RhyvyE13SLth4mFaBrQdLNIGDQDo',
+    `lang` = 'default'
+WHERE `username` = 'admin';
 
 -- Backend user group for bypass permission (uid=1)
 INSERT INTO `be_groups` (`uid`, `pid`, `title`, `description`, `hidden`, `deleted`, `tstamp`, `crdate`, `tables_modify`, `pagetypes_select`, `non_exclude_fields`, `groupMods`)
@@ -56,11 +42,14 @@ VALUES (
 )
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `description` = VALUES(`description`), `groupMods` = VALUES(`groupMods`);
 
--- Editor with bypass group (uid=2)
+-- Editor uids are pinned in the 100s to stay clear of rows that `typo3 setup`
+-- creates (admin and, on v14+, the `_cli_` user). With uid=2/uid=3 the editor
+-- INSERTs would overwrite the admin row on v14 via ON DUPLICATE KEY UPDATE.
+-- Editor with bypass group (uid=101)
 -- Password: docker
 INSERT INTO `be_users` (`uid`, `pid`, `username`, `password`, `admin`, `usergroup`, `disable`, `deleted`, `tstamp`, `crdate`, `realName`, `email`, `db_mountpoints`, `file_mountpoints`, `options`, `lang`)
 VALUES (
-    2,
+    101,
     0,
     'editor_bypass',
     '$argon2i$v=19$m=65536,t=16,p=1$M2s3SFlCQkZZNXhjOVFNUg$+JVwo7NkqRqxQz7RhyvyE13SLth4mFaBrQdLNIGDQDo',
@@ -79,11 +68,11 @@ VALUES (
 )
 ON DUPLICATE KEY UPDATE `username` = VALUES(`username`), `password` = VALUES(`password`), `usergroup` = VALUES(`usergroup`), `lang` = VALUES(`lang`);
 
--- Editor without bypass group (uid=3)
+-- Editor without bypass group (uid=102)
 -- Password: docker
 INSERT INTO `be_users` (`uid`, `pid`, `username`, `password`, `admin`, `usergroup`, `disable`, `deleted`, `tstamp`, `crdate`, `realName`, `email`, `db_mountpoints`, `file_mountpoints`, `options`, `lang`)
 VALUES (
-    3,
+    102,
     0,
     'editor_restricted',
     '$argon2i$v=19$m=65536,t=16,p=1$M2s3SFlCQkZZNXhjOVFNUg$+JVwo7NkqRqxQz7RhyvyE13SLth4mFaBrQdLNIGDQDo',
