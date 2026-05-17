@@ -17,6 +17,7 @@ use TYPO3\CMS\Core\Database\Query\Restriction\QueryRestrictionInterface;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use Wazum\PageDeletionGuard\Hook\PageDeletionGuardHook;
@@ -141,6 +142,34 @@ final class PageDeletionGuardHookTest extends TestCase
         self::assertTrue($recordWasDeleted, 'User not in bypass group should be blocked');
     }
 
+    #[Test]
+    public function logsAndFlashesWhenChildCountQueryFails(): void
+    {
+        $dataHandler = $this->createMock(DataHandler::class);
+        $dataHandler->admin = false;
+        $dataHandler->expects(self::once())
+            ->method('log')
+            ->with(
+                'pages',
+                1,
+                self::anything(),
+                null,
+                self::anything(),
+                self::stringContains('Failed to check child pages')
+            );
+        $recordWasDeleted = false;
+
+        $flashMessageQueue = $this->createMock(FlashMessageQueue::class);
+        $flashMessageQueue->expects(self::once())
+            ->method('enqueue')
+            ->with(self::isInstanceOf(FlashMessage::class));
+
+        $hook = $this->createHook(queryException: new \RuntimeException('boom'), flashMessageQueue: $flashMessageQueue);
+        $hook->processCmdmap_deleteAction('pages', 1, ['title' => 'Test Page'], $recordWasDeleted, $dataHandler);
+
+        self::assertTrue($recordWasDeleted, 'Deletion must be blocked when child count cannot be determined');
+    }
+
     private function createHook(
         bool $enabled = true,
         bool $allowAdminBypass = true,
@@ -148,6 +177,8 @@ final class PageDeletionGuardHookTest extends TestCase
         array $userGroupIds = [],
         int $childCount = 0,
         bool $isAdmin = false,
+        ?\Throwable $queryException = null,
+        ?FlashMessageQueue $flashMessageQueue = null,
     ): PageDeletionGuardHook {
         $config = [
             'enabled' => $enabled,
@@ -189,13 +220,17 @@ final class PageDeletionGuardHookTest extends TestCase
         $queryBuilder->method('where')->willReturnSelf();
         $queryBuilder->method('expr')->willReturn($expr);
         $queryBuilder->method('createNamedParameter')->willReturnCallback(static fn ($value) => (string) $value);
-        $queryBuilder->method('executeQuery')->willReturn($statement);
+        if (null !== $queryException) {
+            $queryBuilder->method('executeQuery')->willThrowException($queryException);
+        } else {
+            $queryBuilder->method('executeQuery')->willReturn($statement);
+        }
         $queryBuilder->method('getRestrictions')->willReturn($restrictionContainer);
 
         $connectionPool->method('getQueryBuilderForTable')->willReturn($queryBuilder);
 
         $flashMessageService = $this->createMock(FlashMessageService::class);
-        $flashMessageQueue = $this->createMock(FlashMessageQueue::class);
+        $flashMessageQueue ??= $this->createMock(FlashMessageQueue::class);
         $flashMessageService->method('getMessageQueueByIdentifier')->willReturn($flashMessageQueue);
 
         $restrictionFactory = $this->createMockRestrictionFactory();
@@ -206,7 +241,9 @@ final class PageDeletionGuardHookTest extends TestCase
             return match ($key) {
                 'LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.title' => 'Page Deletion Blocked',
                 'LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.message' => 'Cannot delete page "%s": %d child page(s) exist. Delete child pages first.',
+                'LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.error.message' => 'Failed to check child pages of "%s". Deletion was blocked as a safety measure.',
                 'LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:log.denied' => 'Page deletion blocked: "%s" (UID %d) has %d child page(s)',
+                'LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:log.error' => 'Failed to check child pages of "%s" (UID %d): %s. Deletion was blocked as a safety measure.',
                 default => $key,
             };
         });

@@ -12,6 +12,12 @@
             <trans-unit id="log.denied" resname="log.denied">
                 <source>Page deletion blocked: "%s" (UID %d) has %d child page(s)</source>
             </trans-unit>
+            <trans-unit id="log.error" resname="log.error">
+                <source>Failed to check child pages of "%s" (UID %d): %s. Deletion was blocked as a safety measure.</source>
+            </trans-unit>
+            <trans-unit id="flash.error.message" resname="flash.error.message">
+                <source>Failed to check child pages of "%s". Deletion was blocked as a safety measure. Please retry; if the problem persists, contact your administrator.</source>
+            </trans-unit>
 
             <!-- JavaScript labels -->
             <trans-unit id="js.standard.title" resname="js.standard.title">

@@ -53,10 +53,8 @@ final readonly class PageDeletionGuardHook
 
         try {
             $childCount = $this->guardService->getChildCount($id, $settings);
-        } catch (\Throwable) {
-            // Block deletion if we cannot determine child count.
-            // This sounds counterintuitive, but setting this to true prevents the deletion (and further processing).
-            $recordWasDeleted = true;
+        } catch (\Throwable $exception) {
+            $this->blockOnError($table, $id, $record, $exception, $recordWasDeleted, $dataHandler);
 
             return;
         }
@@ -66,6 +64,39 @@ final readonly class PageDeletionGuardHook
         }
 
         $this->blockDeletion($table, $id, $record, $childCount, $recordWasDeleted, $dataHandler);
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function blockOnError(
+        string $table,
+        int $id,
+        array $record,
+        \Throwable $exception,
+        bool &$recordWasDeleted,
+        DataHandler $dataHandler,
+    ): void {
+        $pageTitle = $record['title'] ?? '';
+        $flashMessageText = sprintf(
+            $this->languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.error.message'),
+            $pageTitle
+        );
+        $logMessage = sprintf(
+            $this->languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:log.error'),
+            $pageTitle,
+            $id,
+            $exception->getMessage()
+        );
+
+        $flashTitle = $this->languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.title');
+        $flashMessage = new FlashMessage($flashMessageText, $flashTitle, ContextualFeedbackSeverity::ERROR);
+        $this->flashMessageService->getMessageQueueByIdentifier()->enqueue($flashMessage);
+
+        $dataHandler->log($table, $id, 3, null, 1, $logMessage);
+
+        // Setting recordWasDeleted to true short-circuits DataHandler and prevents the deletion.
+        $recordWasDeleted = true;
     }
 
     /**
