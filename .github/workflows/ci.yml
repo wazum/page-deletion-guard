@@ -50,6 +50,9 @@ jobs:
           rm -f composer.lock
           composer update --prefer-dist --no-interaction --no-progress
 
+      - name: Audit dependencies
+        run: composer audit --no-cache
+
       - name: Run PHP-CS-Fixer (dry-run)
         run: composer php-cs-fixer
 
