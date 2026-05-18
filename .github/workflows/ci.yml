@@ -56,6 +56,23 @@ jobs:
       - name: Run Psalm
         run: composer psalm
 
+  typescript:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: Build/package.json
+      - name: Install dependencies
+        working-directory: Build
+        run: npm install --no-audit --no-fund
+      - name: Type-check
+        working-directory: Build
+        run: npm run typecheck
+
   test:
     name: Test (PHP ${{ matrix.php-version }} - TYPO3 ${{ matrix.typo3-version }})
     runs-on: ubuntu-latest

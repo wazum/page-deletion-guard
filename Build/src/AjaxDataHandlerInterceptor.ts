@@ -7,8 +7,8 @@ type DeleteCommand = string | { cmd?: { pages?: Record<string, { delete?: number
 class DeleteInterceptor {
   private static readonly PAGE_DELETE_PATTERN = /cmd\[pages\]\[(\d+)\]\[delete\]=1/
 
-  private originalContextMenuDelete: typeof ContextMenuActions.deleteRecord
-  private originalAjaxDataHandlerProcess: typeof AjaxDataHandler.process
+  private originalContextMenuDelete!: typeof ContextMenuActions.deleteRecord
+  private originalAjaxDataHandlerProcess!: typeof AjaxDataHandler.process
 
   public init(): void {
     this.patchContextMenuActions()
@@ -39,7 +39,7 @@ class DeleteInterceptor {
 
       await this.originalAjaxDataHandlerProcess(`cmd[${table}][${uid}][delete]=1`, context)
       ContextMenuActions.refreshPageTree()
-      const contentContainer = top.TYPO3?.Backend?.ContentContainer?.get()
+      const contentContainer = top?.TYPO3?.Backend?.ContentContainer?.get()
       if (contentContainer) {
         ContextMenuActions.triggerRefresh(contentContainer.location.href)
       }

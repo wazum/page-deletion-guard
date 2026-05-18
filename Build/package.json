@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "watch": "vite build --watch",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": ["typo3", "page", "deletion", "guard", "backend"],
   "author": "Wolfgang Klinger",
