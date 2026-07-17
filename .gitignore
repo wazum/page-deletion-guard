@@ -1,7 +1,6 @@
 # Dependencies
 /vendor/
 Build/node_modules/
-Build/package-lock.json
 
 # Compiled artifacts
 /public/
