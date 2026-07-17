@@ -8,12 +8,14 @@ use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Controller\Event\AfterBackendPageRenderEvent;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Page\PageRenderer;
+use Wazum\PageDeletionGuard\Service\SettingsFactory;
 
 #[AsEventListener(identifier: 'page-deletion-guard/backend-assets')]
 final readonly class BackendAssets
 {
     public function __construct(
         private PageRenderer $pageRenderer,
+        private SettingsFactory $settingsFactory,
     ) {
     }
 
@@ -22,6 +24,10 @@ final readonly class BackendAssets
      */
     public function __invoke(AfterBackendPageRenderEvent $event): void
     {
+        if (!$this->settingsFactory->create()->enabled) {
+            return;
+        }
+
         if (!$this->requestNeedsAssets()) {
             return;
         }
