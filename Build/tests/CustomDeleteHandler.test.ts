@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import Modal from '@typo3/backend/modal.js'
 import CustomDeleteHandler from '../src/DeleteConfirmation/CustomDeleteHandler.js'
 
 // The handler is a singleton with private members; casting exposes them for
@@ -23,6 +24,19 @@ describe('normalizeResponse', () => {
   it('defaults a non-string title to an empty string', () => {
     const result = handler.normalizeResponse({ childCount: 1, pageTitle: 42 })
     expect(result.pageTitle).toBe('')
+  })
+})
+
+describe('promptWarning', () => {
+  it('keeps dollar sequences in the page title verbatim', () => {
+    const advanced = vi.spyOn(Modal, 'advanced')
+
+    handler.promptWarning({ hasChildren: true, childCount: 2, pageTitle: 'Offer $& Sale', isAllowed: true })
+
+    const title = advanced.mock.calls[0][0].title
+    expect(title).toBe('Delete page "Offer $& Sale"?')
+
+    advanced.mockRestore()
   })
 })
 

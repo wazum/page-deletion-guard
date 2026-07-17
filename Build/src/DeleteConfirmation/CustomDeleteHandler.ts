@@ -130,7 +130,7 @@ class CustomDeleteHandler {
       `
 
       const title = (TYPO3.lang['warning.title'] || 'Delete page "%s"?')
-        .replaceAll('%s', data.pageTitle)
+        .replaceAll('%s', () => data.pageTitle)
 
       const deleteButtonText = (TYPO3.lang['button.delete_with_children'] || 'Yes, delete page and %d %s')
         .replaceAll('%d', data.childCount.toString())
