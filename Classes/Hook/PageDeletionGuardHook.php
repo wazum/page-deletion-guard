@@ -19,19 +19,13 @@ use Wazum\PageDeletionGuard\Service\SettingsFactory;
 
 final readonly class PageDeletionGuardHook
 {
-    private LanguageService $languageService;
-
     public function __construct(
         private SettingsFactory $settingsFactory,
         private FlashMessageService $flashMessageService,
         private PageDeletionGuardService $guardService,
         private BackendUserProviderInterface $userProvider,
-        LanguageServiceFactory $languageServiceFactory,
+        private LanguageServiceFactory $languageServiceFactory,
     ) {
-        $backendUser = $this->userProvider->getBackendUser();
-        $this->languageService = $backendUser
-            ? $languageServiceFactory->createFromUserPreferences($backendUser)
-            : $languageServiceFactory->create('default');
     }
 
     /**
@@ -79,19 +73,20 @@ final readonly class PageDeletionGuardHook
         bool &$recordWasDeleted,
         DataHandler $dataHandler,
     ): void {
+        $languageService = $this->getLanguageService();
         $pageTitle = $record['title'] ?? '';
         $flashMessageText = sprintf(
-            $this->languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.error.message'),
+            $languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.error.message'),
             $pageTitle
         );
         $logMessage = sprintf(
-            $this->languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:log.error'),
+            $languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:log.error'),
             $pageTitle,
             $id,
             $exception->getMessage()
         );
 
-        $flashTitle = $this->languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.title');
+        $flashTitle = $languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.title');
         $flashMessage = new FlashMessage($flashMessageText, $flashTitle, ContextualFeedbackSeverity::ERROR);
         $this->flashMessageService->getMessageQueueByIdentifier()->enqueue($flashMessage);
 
@@ -112,21 +107,22 @@ final readonly class PageDeletionGuardHook
         bool &$recordWasDeleted,
         DataHandler $dataHandler,
     ): void {
+        $languageService = $this->getLanguageService();
         $pageTitle = $record['title'] ?? '';
         $flashMessageText = sprintf(
-            $this->languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.message'),
+            $languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.message'),
             $pageTitle,
             $childCount
         );
 
         $logMessage = sprintf(
-            $this->languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:log.denied'),
+            $languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:log.denied'),
             $pageTitle,
             $id,
             $childCount
         );
 
-        $flashTitle = $this->languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.title');
+        $flashTitle = $languageService->sL('LLL:EXT:page_deletion_guard/Resources/Private/Language/locallang.xlf:flash.title');
         $flashMessage = new FlashMessage($flashMessageText, $flashTitle, ContextualFeedbackSeverity::ERROR);
         $this->flashMessageService->getMessageQueueByIdentifier()->enqueue($flashMessage);
 
@@ -134,5 +130,14 @@ final readonly class PageDeletionGuardHook
 
         // This sounds counterintuitive, but setting this to true prevents the deletion (and further processing).
         $recordWasDeleted = true;
+    }
+
+    private function getLanguageService(): LanguageService
+    {
+        $backendUser = $this->userProvider->getBackendUser();
+
+        return $backendUser
+            ? $this->languageServiceFactory->createFromUserPreferences($backendUser)
+            : $this->languageServiceFactory->create('default');
     }
 }
