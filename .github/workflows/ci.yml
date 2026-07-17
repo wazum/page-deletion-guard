@@ -75,6 +75,9 @@ jobs:
       - name: Type-check
         working-directory: Build
         run: npm run typecheck
+      - name: Test
+        working-directory: Build
+        run: npm test
 
   test:
     name: Test (PHP ${{ matrix.php-version }} - TYPO3 ${{ matrix.typo3-version }})
