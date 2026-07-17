@@ -17,6 +17,7 @@ use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
+use TYPO3\CMS\Core\SysLog\Error as SystemLogErrorClassification;
 use Wazum\PageDeletionGuard\Hook\PageDeletionGuardHook;
 use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
@@ -62,7 +63,7 @@ final class PageDeletionGuardHookTest extends TestCase
                 1,
                 self::anything(),
                 null,
-                0,
+                SystemLogErrorClassification::USER_ERROR,
                 self::stringContains('2 child page(s)')
             );
         $recordWasDeleted = false;

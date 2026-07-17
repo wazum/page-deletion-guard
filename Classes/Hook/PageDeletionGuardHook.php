@@ -130,7 +130,7 @@ final readonly class PageDeletionGuardHook
         $flashMessage = new FlashMessage($flashMessageText, $flashTitle, ContextualFeedbackSeverity::ERROR);
         $this->flashMessageService->getMessageQueueByIdentifier()->enqueue($flashMessage);
 
-        $dataHandler->log($table, $id, DatabaseAction::DELETE, null, SystemLogErrorClassification::MESSAGE, $logMessage);
+        $dataHandler->log($table, $id, DatabaseAction::DELETE, null, SystemLogErrorClassification::USER_ERROR, $logMessage);
 
         // This sounds counterintuitive, but setting this to true prevents the deletion (and further processing).
         $recordWasDeleted = true;
