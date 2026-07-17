@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Wazum\PageDeletionGuard\Tests\Functional\Service;
 
 use PHPUnit\Framework\Attributes\Test;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 use Wazum\PageDeletionGuard\Service\BackendUserProvider;
+use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
 use Wazum\PageDeletionGuard\Service\Settings;
 
@@ -47,11 +49,59 @@ final class PageDeletionGuardServiceTest extends FunctionalTestCase
         self::assertSame(2, $this->createService()->getChildCount(1, new Settings()));
     }
 
-    private function createService(): PageDeletionGuardService
+    #[Test]
+    public function doesNotCountWorkspaceVersionsOfLivePagesTwice(): void
     {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/pages-with-workspace.csv');
+
+        // Child A (live) counted once, its workspace version ignored, the
+        // new-in-workspace page counted once.
+        self::assertSame(2, $this->createService(workspaceId: 1)->getChildCount(1, new Settings()));
+    }
+
+    private function createService(int $workspaceId = 0): PageDeletionGuardService
+    {
+        $userProvider = 0 === $workspaceId
+            ? new BackendUserProvider()
+            : $this->createUserProviderForWorkspace($workspaceId);
+
         return new PageDeletionGuardService(
-            new BackendUserProvider(),
+            $userProvider,
             $this->get(ConnectionPool::class)
         );
+    }
+
+    private function createUserProviderForWorkspace(int $workspaceId): BackendUserProviderInterface
+    {
+        return new class($workspaceId) implements BackendUserProviderInterface {
+            public function __construct(private readonly int $workspaceId)
+            {
+            }
+
+            public function getUserGroupIds(): array
+            {
+                return [];
+            }
+
+            public function isAdmin(): bool
+            {
+                return false;
+            }
+
+            public function getWorkspaceId(): int
+            {
+                return $this->workspaceId;
+            }
+
+            public function isAuthenticated(): bool
+            {
+                return true;
+            }
+
+            public function getBackendUser(): ?BackendUserAuthentication
+            {
+                return null;
+            }
+        };
     }
 }

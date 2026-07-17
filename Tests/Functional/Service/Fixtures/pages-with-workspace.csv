@@ -1,0 +1,6 @@
+"pages"
+,"uid","pid","title","deleted","sys_language_uid","l10n_parent","t3ver_wsid","t3ver_oid","t3ver_state"
+,1,0,"Root",0,0,0,0,0,0
+,2,1,"Child A (live)",0,0,0,0,0,0
+,100,1,"Child A (workspace version)",0,0,0,1,2,0
+,3,1,"New page in workspace",0,0,0,1,0,0

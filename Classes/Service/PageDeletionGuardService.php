@@ -27,9 +27,11 @@ final readonly class PageDeletionGuardService
      * reflect the full impact, not just direct children. Translations live
      * in the pages table sharing their original's pid, so they are excluded
      * via sys_language_uid = 0 to avoid inflating the subpage count. The
-     * workspace filter mirrors WorkspaceRestriction's "live or current
-     * workspace" predicate; deeper version-state semantics are intentionally
-     * omitted here because this is only a count for a warning dialog.
+     * workspace filter counts every live page plus pages created in the
+     * current workspace; versions of live pages (t3ver_oid > 0) are skipped
+     * so a modified page is not counted twice. Deeper version-state semantics
+     * (delete/move placeholders) are intentionally omitted here because this
+     * is only a count for a warning dialog.
      *
      * @throws Exception
      */
@@ -41,8 +43,8 @@ final readonly class PageDeletionGuardService
         $types = ['rootPid' => ParameterType::INTEGER];
 
         if ($settings->respectWorkspaces) {
-            $whereParts[] = 't3ver_wsid IN (0, :workspaceId)';
-            $aliasedWhereParts[] = 'p.t3ver_wsid IN (0, :workspaceId)';
+            $whereParts[] = '(t3ver_wsid = 0 OR (t3ver_wsid = :workspaceId AND t3ver_oid = 0))';
+            $aliasedWhereParts[] = '(p.t3ver_wsid = 0 OR (p.t3ver_wsid = :workspaceId AND p.t3ver_oid = 0))';
             $params['workspaceId'] = $this->userProvider->getWorkspaceId();
             $types['workspaceId'] = ParameterType::INTEGER;
         }
