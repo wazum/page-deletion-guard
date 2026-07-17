@@ -24,17 +24,19 @@ final readonly class PageDeletionGuardService
     /**
      * Counts every descendant of the given page in a single recursive CTE.
      * TYPO3 recursively deletes the entire subtree, so the warning must
-     * reflect the full impact, not just direct children. The workspace
-     * filter mirrors WorkspaceRestriction's "live or current workspace"
-     * predicate; deeper version-state semantics are intentionally omitted
-     * here because this is only a count for a warning dialog.
+     * reflect the full impact, not just direct children. Translations live
+     * in the pages table sharing their original's pid, so they are excluded
+     * via sys_language_uid = 0 to avoid inflating the subpage count. The
+     * workspace filter mirrors WorkspaceRestriction's "live or current
+     * workspace" predicate; deeper version-state semantics are intentionally
+     * omitted here because this is only a count for a warning dialog.
      *
      * @throws Exception
      */
     public function getChildCount(int $pageId, Settings $settings): int
     {
-        $whereParts = ['deleted = 0'];
-        $aliasedWhereParts = ['p.deleted = 0'];
+        $whereParts = ['deleted = 0', 'sys_language_uid = 0'];
+        $aliasedWhereParts = ['p.deleted = 0', 'p.sys_language_uid = 0'];
         $params = ['rootPid' => $pageId];
         $types = ['rootPid' => ParameterType::INTEGER];
 

@@ -15,28 +15,36 @@ final class PageDeletionGuardServiceTest extends FunctionalTestCase
 {
     protected array $testExtensionsToLoad = ['wazum/page-deletion-guard'];
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->importCSVDataSet(__DIR__ . '/Fixtures/pages.csv');
-    }
-
     #[Test]
     public function countsAllDescendantsAcrossMultipleLevels(): void
     {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/pages.csv');
+
         self::assertSame(4, $this->createService()->getChildCount(1, new Settings()));
     }
 
     #[Test]
     public function returnsZeroForLeafPage(): void
     {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/pages.csv');
+
         self::assertSame(0, $this->createService()->getChildCount(6, new Settings()));
     }
 
     #[Test]
     public function returnsZeroWhenOnlyDeletedChildrenExist(): void
     {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/pages.csv');
+
         self::assertSame(0, $this->createService()->getChildCount(3, new Settings()));
+    }
+
+    #[Test]
+    public function doesNotCountTranslatedPagesAsChildren(): void
+    {
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/pages-with-translations.csv');
+
+        self::assertSame(2, $this->createService()->getChildCount(1, new Settings()));
     }
 
     private function createService(): PageDeletionGuardService
