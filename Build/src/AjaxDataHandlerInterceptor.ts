@@ -1,8 +1,7 @@
 import AjaxDataHandler from '@typo3/backend/ajax-data-handler.js'
 import ContextMenuActions from '@typo3/backend/context-menu-actions.js'
 import CustomDeleteHandler from './DeleteConfirmation/CustomDeleteHandler.js'
-
-type DeleteCommand = string | { cmd?: { pages?: Record<string, { delete?: number }> } }
+import { extractPageDeleteUids, type DeleteCommand } from './pageDeleteCommand.js'
 
 class DeleteInterceptor {
   private static readonly PAGE_DELETE_PATTERN = /cmd\[pages\]\[(\d+)\]\[delete\]=1/
@@ -50,9 +49,9 @@ class DeleteInterceptor {
     this.originalAjaxDataHandlerProcess = AjaxDataHandler.process.bind(AjaxDataHandler)
 
     AjaxDataHandler.process = (command: DeleteCommand, context?: Record<string, unknown>): Promise<unknown> => {
-      const pageUid = this.extractPageUid(command)
-      if (pageUid) {
-        return this.handleDirectPageDelete(pageUid, command, context ?? {})
+      const pageUids = extractPageDeleteUids(command)
+      if (pageUids.length > 0) {
+        return this.handleDirectPageDelete(pageUids, command, context ?? {})
       }
 
       return this.originalAjaxDataHandlerProcess(command, context)
@@ -188,36 +187,19 @@ class DeleteInterceptor {
     }, true)
   }
 
-  private async handleDirectPageDelete(pageUid: string, command: DeleteCommand, context: Record<string, unknown>): Promise<unknown> {
+  private async handleDirectPageDelete(pageUids: string[], command: DeleteCommand, context: Record<string, unknown>): Promise<unknown> {
     try {
-      const shouldProceed = await CustomDeleteHandler.checkAndShowModal('pages', pageUid, context)
-      if (shouldProceed) {
-        return this.originalAjaxDataHandlerProcess(command, context)
+      for (const pageUid of pageUids) {
+        const shouldProceed = await CustomDeleteHandler.checkAndShowModal('pages', pageUid, context)
+        if (!shouldProceed) {
+          return { hasErrors: false, messages: [] }
+        }
       }
 
-      return { hasErrors: false, messages: [] }
-    } catch (error) {
+      return this.originalAjaxDataHandlerProcess(command, context)
+    } catch {
       return this.originalAjaxDataHandlerProcess(command, context)
     }
-  }
-
-  private extractPageUid(command: DeleteCommand): string | null {
-    if (typeof command === 'string') {
-      const match = command.match(DeleteInterceptor.PAGE_DELETE_PATTERN)
-      return match ? match[1] : null
-    }
-
-    const pages = command.cmd?.pages
-    if (!pages) {
-      return null
-    }
-
-    const [firstUid] = Object.keys(pages)
-    if (!firstUid) {
-      return null
-    }
-
-    return pages[firstUid]?.delete ? firstUid : null
   }
 }
 
