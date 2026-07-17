@@ -7,6 +7,12 @@ on:
       - 'feature/*'
   pull_request:
 
+# TYPO3 v12 is in ELTS; every public v12 release carries a packagist security
+# advisory. We have no ELTS access, so disable advisory blocking for CI
+# installs (composer still fails hard on genuine resolution errors).
+env:
+  COMPOSER_POLICY_ADVISORIES_BLOCK: 0
+
 jobs:
   e2e:
     name: E2E (PHP ${{ matrix.php }} - TYPO3 ${{ matrix.typo3 }})

@@ -8,6 +8,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# TYPO3 v12 is in ELTS; every public v12 release carries a packagist security
+# advisory. We have no ELTS access, so disable advisory blocking for CI
+# installs (composer still fails hard on genuine resolution errors).
+env:
+  COMPOSER_POLICY_ADVISORIES_BLOCK: 0
+
 jobs:
   code-quality:
     name: Code Quality (PHP ${{ matrix.php-version }})
