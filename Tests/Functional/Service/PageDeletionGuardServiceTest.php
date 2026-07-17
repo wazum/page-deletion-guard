@@ -98,6 +98,11 @@ final class PageDeletionGuardServiceTest extends FunctionalTestCase
                 return true;
             }
 
+            public function getPagePermissionClause(int $permission): string
+            {
+                return '1=1';
+            }
+
             public function getBackendUser(): ?BackendUserAuthentication
             {
                 return null;

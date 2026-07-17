@@ -8,7 +8,9 @@ use Doctrine\DBAL\Exception;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\QueryHelper;
 use TYPO3\CMS\Core\Http\JsonResponse;
+use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use Wazum\PageDeletionGuard\Service\BackendUserProviderInterface;
 use Wazum\PageDeletionGuard\Service\PageDeletionGuardService;
 use Wazum\PageDeletionGuard\Service\QueryRestrictionFactoryInterface;
@@ -53,6 +55,12 @@ final readonly class ChildPageCheckController
             }
 
             $pageRecord = $this->getPageRecord($pageUid, $settings);
+            if ([] === $pageRecord) {
+                return new JsonResponse([
+                    'error' => 'Page not found or not accessible',
+                ], 404);
+            }
+
             $childCount = $this->guardService->getChildCount($pageUid, $settings);
 
             return new JsonResponse([
@@ -89,7 +97,12 @@ final readonly class ChildPageCheckController
         $record = $queryBuilder
             ->select('uid', 'title')
             ->from('pages')
-            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($pageUid)))
+            ->where(
+                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($pageUid)),
+                QueryHelper::stripLogicalOperatorPrefix(
+                    $this->userProvider->getPagePermissionClause(Permission::PAGE_SHOW)
+                )
+            )
             ->executeQuery()
             ->fetchAssociative();
 

@@ -75,6 +75,23 @@ final class ChildPageCheckControllerTest extends TestCase
     }
 
     #[Test]
+    public function deniesAccessWithoutDisclosingWhenPageNotVisibleToUser(): void
+    {
+        $controller = $this->createController(childCount: 3, pageRecord: []);
+
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request->method('getQueryParams')->willReturn(['pageUid' => 123]);
+
+        $response = $controller->checkChildrenAction($request);
+
+        self::assertSame(404, $response->getStatusCode());
+
+        $content = json_decode($response->getBody()->getContents(), true);
+        self::assertArrayNotHasKey('pageTitle', $content, 'Must not disclose the title of an inaccessible page');
+        self::assertArrayNotHasKey('childCount', $content, 'Must not disclose the child count of an inaccessible page');
+    }
+
+    #[Test]
     public function returnsErrorOnInvalidPageUid(): void
     {
         $controller = $this->createController(enabled: true, childCount: 0);
@@ -109,6 +126,7 @@ final class ChildPageCheckControllerTest extends TestCase
         int $childCount = 0,
         array $userGroupIds = [],
         bool $isAdmin = false,
+        array $pageRecord = ['uid' => 123, 'title' => 'Test Page'],
     ): ChildPageCheckController {
         $config = [
             'enabled' => $enabled,
@@ -125,11 +143,12 @@ final class ChildPageCheckControllerTest extends TestCase
         $userProvider->method('getWorkspaceId')->willReturn(0);
         $userProvider->method('isAuthenticated')->willReturn(true);
         $userProvider->method('getBackendUser')->willReturn(null);
+        $userProvider->method('getPagePermissionClause')->willReturn('1=1');
 
         $connectionPool = $this->createMock(ConnectionPool::class);
 
         $pageLookupResult = $this->createMock(Result::class);
-        $pageLookupResult->method('fetchAssociative')->willReturn(['uid' => 123, 'title' => 'Test Page']);
+        $pageLookupResult->method('fetchAssociative')->willReturn([] === $pageRecord ? false : $pageRecord);
 
         $expr = $this->createMock(ExpressionBuilder::class);
         $expr->method('eq')->willReturn('uid = 123');

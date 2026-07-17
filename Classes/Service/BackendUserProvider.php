@@ -31,6 +31,11 @@ final readonly class BackendUserProvider implements BackendUserProviderInterface
         return null !== $this->getBackendUser();
     }
 
+    public function getPagePermissionClause(int $permission): string
+    {
+        return $this->getBackendUser()?->getPagePermsClause($permission) ?? '0=1';
+    }
+
     public function getBackendUser(): ?BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'] ?? null;
