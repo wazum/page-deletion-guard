@@ -1,0 +1,9 @@
+"pages"
+,"uid","pid","title","deleted","sys_language_uid","l10n_parent","t3ver_wsid","t3ver_oid","t3ver_state"
+,1,0,"Root",0,0,0,0,0,0
+,2,1,"Child A",0,0,0,0,0,0
+,3,1,"Child B",0,0,0,0,0,0
+,4,2,"Grandchild",0,0,0,0,0,0
+,5,1,"Deleted child",1,0,0,0,0,0
+,6,4,"Great-grandchild",0,0,0,0,0,0
+,7,3,"Deleted grandchild",1,0,0,0,0,0

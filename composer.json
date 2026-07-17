@@ -63,7 +63,14 @@
       "@php-cs-fixer:fix"
     ],
     "test": [
+      "@test:unit",
+      "@test:functional"
+    ],
+    "test:unit": [
       "./vendor/bin/phpunit -c phpunit.xml.dist"
+    ],
+    "test:functional": [
+      "typo3DatabaseDriver=pdo_sqlite ./vendor/bin/phpunit -c phpunit.functional.xml.dist"
     ]
   }
 }
