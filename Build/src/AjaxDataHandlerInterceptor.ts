@@ -142,7 +142,11 @@ class DeleteInterceptor {
           win.location.href = dataUri
         }
       } catch {
-        win.location.href = dataUri
+        // The guard check itself failed; fall back to a plain confirmation
+        // rather than deleting the page without asking.
+        if (await CustomDeleteHandler.confirmDeletion()) {
+          win.location.href = dataUri
+        }
       }
     }, true)
   }
@@ -175,16 +179,22 @@ class DeleteInterceptor {
         const shouldProceed = await CustomDeleteHandler.checkAndShowModal('pages', pageUid)
 
         if (shouldProceed) {
-          await this.originalAjaxDataHandlerProcess(dataParams)
-          ContextMenuActions.refreshPageTree()
-          win.location.reload()
+          await this.deleteAndRefresh(dataParams, win)
         }
       } catch {
-        await this.originalAjaxDataHandlerProcess(dataParams)
-        ContextMenuActions.refreshPageTree()
-        win.location.reload()
+        // The guard check itself failed; fall back to a plain confirmation
+        // rather than deleting the page without asking.
+        if (await CustomDeleteHandler.confirmDeletion()) {
+          await this.deleteAndRefresh(dataParams, win)
+        }
       }
     }, true)
+  }
+
+  private async deleteAndRefresh(dataParams: string, win: Window): Promise<void> {
+    await this.originalAjaxDataHandlerProcess(dataParams)
+    ContextMenuActions.refreshPageTree()
+    win.location.reload()
   }
 
   private async handleDirectPageDelete(pageUids: string[], command: DeleteCommand, context: Record<string, unknown>): Promise<unknown> {
@@ -198,7 +208,13 @@ class DeleteInterceptor {
 
       return this.originalAjaxDataHandlerProcess(command, context)
     } catch {
-      return this.originalAjaxDataHandlerProcess(command, context)
+      // The guard check itself failed; fall back to a plain confirmation
+      // rather than deleting the pages without asking.
+      if (await CustomDeleteHandler.confirmDeletion()) {
+        return this.originalAjaxDataHandlerProcess(command, context)
+      }
+
+      return { hasErrors: false, messages: [] }
     }
   }
 }

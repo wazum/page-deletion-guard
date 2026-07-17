@@ -25,11 +25,11 @@ class CustomDeleteHandler {
     const childInfo = await this.fetchChildInfo(pageUid)
 
     if (!childInfo) {
-      return this.showStandardConfirmation()
+      return this.confirmDeletion()
     }
 
     if (!childInfo.hasChildren) {
-      return this.showStandardConfirmation()
+      return this.confirmDeletion()
     }
 
     if (!childInfo.isAllowed) {
@@ -38,6 +38,39 @@ class CustomDeleteHandler {
     }
 
     return this.promptWarning(childInfo)
+  }
+
+  // The plain TYPO3-style confirmation, used both when a page has no children
+  // and as a safe fallback when the guard check could not run.
+  public confirmDeletion(): Promise<boolean> {
+    return new Promise((resolve) => {
+      Modal.confirm(
+        TYPO3.lang['standard.title'] || 'Delete this record?',
+        TYPO3.lang['standard.message'] || 'Are you sure you want to delete this page?',
+        SeverityEnum.warning,
+        [
+          {
+            text: TYPO3.lang['button.cancel'] || 'Cancel',
+            active: true,
+            btnClass: 'btn-default',
+            name: 'cancel',
+            trigger: (_event: Event, modal: ModalElement): void => {
+              modal.hideModal()
+              resolve(false)
+            }
+          },
+          {
+            text: TYPO3.lang['button.delete'] || 'Delete',
+            btnClass: 'btn-warning',
+            name: 'delete',
+            trigger: (_event: Event, modal: ModalElement): void => {
+              modal.hideModal()
+              resolve(true)
+            }
+          }
+        ]
+      )
+    })
   }
 
   private async fetchChildInfo(pageUid: number): Promise<ChildCheckResponse | null> {
@@ -78,37 +111,6 @@ class CustomDeleteHandler {
       pageTitle: typeof raw.pageTitle === 'string' ? raw.pageTitle : '',
       isAllowed: raw.isAllowed === true,
     }
-  }
-
-  private showStandardConfirmation(): Promise<boolean> {
-    return new Promise((resolve) => {
-      Modal.confirm(
-        TYPO3.lang['standard.title'] || 'Delete this record?',
-        TYPO3.lang['standard.message'] || 'Are you sure you want to delete this page?',
-        SeverityEnum.warning,
-        [
-          {
-            text: TYPO3.lang['button.cancel'] || 'Cancel',
-            active: true,
-            btnClass: 'btn-default',
-            name: 'cancel',
-            trigger: (_event: Event, modal: ModalElement): void => {
-              modal.hideModal()
-              resolve(false)
-            }
-          },
-          {
-            text: TYPO3.lang['button.delete'] || 'Delete',
-            btnClass: 'btn-warning',
-            name: 'delete',
-            trigger: (_event: Event, modal: ModalElement): void => {
-              modal.hideModal()
-              resolve(true)
-            }
-          }
-        ]
-      )
-    })
   }
 
   private promptWarning(data: ChildCheckResponse): Promise<boolean> {
